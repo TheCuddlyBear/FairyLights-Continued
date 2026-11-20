@@ -3,6 +3,7 @@ package de.lucalabs.fairylights.main.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.DyeColor;
@@ -26,8 +27,9 @@ public final class OreDictUtils {
 
     public static DyeColor getDyeColor(final ItemStack stack) {
         if (!stack.isEmpty()) {
-            if (stack.getItem() instanceof DyeItem) {
-                return ((DyeItem) stack.getItem()).getDyeColor();
+            final DyeColor color = stack.get(DataComponents.DYE);
+            if (color != null) {
+                return color;
             }
             for (final Dye dye : Dye.values()) {
                 if (stack.is(dye.getName())) {

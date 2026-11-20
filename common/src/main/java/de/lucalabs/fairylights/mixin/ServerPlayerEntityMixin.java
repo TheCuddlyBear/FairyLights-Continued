@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ServerPlayer.class)
 public class ServerPlayerEntityMixin {
     @Inject(method = "triggerDimensionChangeTriggers", at = @At("HEAD"))
-    private void onDimensionChange(ServerLevel origin, CallbackInfo ci) {
+    private void onDimensionChange(ServerLevel oldLevel, CallbackInfo ci) {
         ServerPlayer player = (ServerPlayer) (Object) this;
         Services.COMPONENTS.maybeGet(player, Services.KEYS.FASTENER()).ifPresent(f -> f.setWorld(player.level()));
     }

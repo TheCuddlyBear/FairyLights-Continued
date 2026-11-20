@@ -10,7 +10,7 @@
     "ServerPlayerEntityMixin"
   ],
   "client": [
-    "client.GameRendererMixin",
+    "client.MinecraftMixin",
     "client.WorldRendererMixin"
   ],
   "server": [],

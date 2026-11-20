@@ -1,6 +1,6 @@
 plugins {
-    // see https://fabricmc.net/develop/ for new versions
-    id 'fabric-loom' version '1.8-SNAPSHOT' apply false
-    // see https://projects.neoforged.net/neoforged/moddevgradle for new versions
-    id 'net.neoforged.moddev' version '2.0.49-beta' apply false
+    // Unobfuscated Loom plugin (required for Minecraft 26.1+)
+    id 'net.fabricmc.fabric-loom' version '1.18.1' apply false
+    // Latest ModDevGradle (supports unobfuscated 26.1+ NeoForm/NeoForge)
+    id 'net.neoforged.moddev' version '2.0.148' apply false
 }

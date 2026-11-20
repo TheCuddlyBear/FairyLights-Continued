@@ -8,14 +8,28 @@ repositories {
         name = "TerraformersMC"
         url = "https://maven.terraformersmc.com/"
     }
+    // Needed if you use a 26.1+ community fork of EMI (like SEMI) from Modrinth
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
 }
 
 dependencies {
-    compileOnly("dev.emi:emi-neoforge:${emi_version}+${project.minecraft_version}") { transitive = false }
+    // Official EMI stops at 1.21.1. Keep disabled unless pointing to a 26.1 fork on Modrinth.
     if (project.enable_emi.toBoolean()) {
-        runtimeOnly("dev.emi:emi-neoforge:${emi_version}+${project.minecraft_version}") { transitive = false }
+        compileOnly("dev.emi:emi-neoforge:${emi_version}") { transitive = false }
+        runtimeOnly("dev.emi:emi-neoforge:${emi_version}") { transitive = false }
     }
 
+    compileOnly("mezz.jei:jei-${project.minecraft_version}-common-api:${jei_version}")
     compileOnly("mezz.jei:jei-${project.minecraft_version}-neoforge-api:${jei_version}")
     if (project.enable_jei.toBoolean()) {
         runtimeOnly("mezz.jei:jei-${project.minecraft_version}-neoforge:${jei_version}")
@@ -24,15 +38,13 @@ dependencies {
 
 neoForge {
     version = neoforge_version
-    // Automatically enable neoforge AccessTransformers if the file exists
+
+    // Automatically enable NeoForge AccessTransformers if the file exists
     def at = project(':common').file('src/main/resources/META-INF/accesstransformer.cfg')
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
     }
-    parchment {
-        minecraftVersion = parchment_minecraft
-        mappingsVersion = parchment_version
-    }
+
     runs {
         configureEach {
             systemProperty('neoforge.enabledGameTestNamespaces', mod_id)
@@ -42,17 +54,18 @@ neoForge {
             client()
         }
         data {
-            data()
+            // Replaced data() in 1.21.4+; keeps the task name as :neoforge:runData
+            clientData()
 
             // DataGen can be run by - "./gradlew :neoforge:runData" in Terminal.
             // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
             programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
-
         }
         server {
             server()
         }
     }
+
     mods {
         "${mod_id}" {
             sourceSet sourceSets.main

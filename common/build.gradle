@@ -5,15 +5,13 @@ plugins {
 
 neoForge {
     neoFormVersion = neo_form_version
+
     // Automatically enable AccessTransformers if the file exists
     def at = file('src/main/resources/META-INF/accesstransformer.cfg')
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
     }
-    parchment {
-        minecraftVersion = parchment_minecraft
-        mappingsVersion = parchment_version
-    }
+    // Parchment block removed: MC 26.1+ ships unobfuscated with Mojang parameter names
 }
 
 repositories {
@@ -25,15 +23,31 @@ repositories {
         name = "Jared's maven"
         url = "https://maven.blamejared.com/"
     }
+    // Needed if you use a 26.1+ community fork of EMI (like SEMI) from Modrinth
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
 }
 
 dependencies {
-    compileOnly group: 'org.spongepowered', name: 'mixin', version: '0.8.5'
-    // fabric and neoforge both bundle mixinextras, so it is safe to use it in common
-    compileOnly group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.3.5'
-    annotationProcessor group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.3.5'
+    compileOnly group: 'org.spongepowered', name: 'mixin', version: '0.8.7'
+    // Fabric and NeoForge both bundle MixinExtras; 0.5.0+ supports Java 25 class files
+    compileOnly group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.5.5'
+    annotationProcessor group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.5.5'
 
-    compileOnly "dev.emi:emi-xplat-mojmap:${emi_version}+1.21.1:api"
+    // Official EMI stops at 1.21.1. Guarded until pointing to a 26.1 fork
+    if (project.enable_emi.toBoolean()) {
+        compileOnly "dev.emi:emi-xplat-mojmap:${emi_version}:api"
+    }
+
     compileOnly("mezz.jei:jei-${project.minecraft_version}-common-api:${jei_version}")
 }
 
@@ -52,4 +66,3 @@ artifacts {
     commonJava sourceSets.main.java.sourceDirectories.singleFile
     commonResources sourceSets.main.resources.sourceDirectories.singleFile
 }
-

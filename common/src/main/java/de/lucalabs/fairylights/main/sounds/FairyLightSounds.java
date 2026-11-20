@@ -4,7 +4,7 @@ import de.lucalabs.fairylights.Common;
 import de.lucalabs.fairylights.Constants;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 
 public final class FairyLightSounds {
@@ -21,7 +21,7 @@ public final class FairyLightSounds {
     }
 
     private static SoundEvent register(final String name) {
-        ResourceLocation identifier = Common.id(name);
+        Identifier identifier = Common.id(name);
         return Registry.register(BuiltInRegistries.SOUND_EVENT, identifier, SoundEvent.createVariableRangeEvent(identifier));
     }
 

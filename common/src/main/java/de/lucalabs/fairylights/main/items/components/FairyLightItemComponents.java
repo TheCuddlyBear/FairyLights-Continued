@@ -9,7 +9,7 @@ import de.lucalabs.fairylights.main.string.StringType;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 public final class FairyLightItemComponents {
@@ -44,10 +44,10 @@ public final class FairyLightItemComponents {
             DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build()
     );
 
-    public static final DataComponentType<ResourceLocation> LIGHT_VARIANT = Registry.register(
+    public static final DataComponentType<Identifier> LIGHT_VARIANT = Registry.register(
             BuiltInRegistries.DATA_COMPONENT_TYPE,
             Common.id("variant"),
-            DataComponentType.<ResourceLocation>builder().persistent(ResourceLocation.CODEC).build()
+            DataComponentType.<Identifier>builder().persistent(Identifier.CODEC).build()
     );
 
     private FairyLightItemComponents() {

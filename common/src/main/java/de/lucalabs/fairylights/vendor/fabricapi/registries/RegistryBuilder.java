@@ -3,8 +3,8 @@ package de.lucalabs.fairylights.vendor.fabricapi.registries;
 import com.mojang.serialization.Lifecycle;
 import de.lucalabs.fairylights.mixin.RegistriesAccessor;
 import net.minecraft.core.*;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 
 import java.util.EnumSet;
 
@@ -20,19 +20,19 @@ public final class RegistryBuilder<T, R extends WritableRegistry<T>> {
         return from(new MappedRegistry<>(registryKey, Lifecycle.stable(), false));
     }
 
-    public static <T> RegistryBuilder<T, DefaultedMappedRegistry<T>> createDefaulted(ResourceKey<Registry<T>> registryKey, ResourceLocation defaultId) {
+    public static <T> RegistryBuilder<T, DefaultedMappedRegistry<T>> createDefaulted(ResourceKey<Registry<T>> registryKey, Identifier defaultId) {
         return from(new DefaultedMappedRegistry<>(defaultId.toString(), registryKey, Lifecycle.stable(), false));
     }
 
     /** @deprecated */
     @Deprecated
-    public static <T> RegistryBuilder<T, MappedRegistry<T>> createSimple(Class<T> type, ResourceLocation registryId) {
+    public static <T> RegistryBuilder<T, MappedRegistry<T>> createSimple(Class<T> type, Identifier registryId) {
         return createSimple(ResourceKey.createRegistryKey(registryId));
     }
 
     /** @deprecated */
     @Deprecated
-    public static <T> RegistryBuilder<T, DefaultedMappedRegistry<T>> createDefaulted(Class<T> type, ResourceLocation registryId, ResourceLocation defaultId) {
+    public static <T> RegistryBuilder<T, DefaultedMappedRegistry<T>> createDefaulted(Class<T> type, Identifier registryId, Identifier defaultId) {
         return createDefaulted(ResourceKey.createRegistryKey(registryId), defaultId);
     }
 

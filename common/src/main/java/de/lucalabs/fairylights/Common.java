@@ -1,7 +1,7 @@
 package de.lucalabs.fairylights;
 
 import de.lucalabs.fairylights.platform.Services;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 // This class is part of the common project meaning it is shared between all supported loaders. Code written here can only
 // import and access the vanilla codebase, libraries used by vanilla, and optionally third party libraries that provide
@@ -27,7 +27,7 @@ public class Common {
         }
     }
 
-    public static ResourceLocation id(String key) {
-        return ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, key);
+    public static Identifier id(String key) {
+        return Identifier.fromNamespaceAndPath(Constants.MOD_ID, key);
     }
 }

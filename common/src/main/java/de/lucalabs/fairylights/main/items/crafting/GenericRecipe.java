@@ -13,23 +13,19 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.IntUnaryOperator;
 import java.util.function.Supplier;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.PatchedDataComponentMap;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CustomRecipe;
-import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.Level;
 
 public final class GenericRecipe extends CustomRecipe {
     public static final EmptyRegularIngredient EMPTY = new EmptyRegularIngredient();
 
-    private final ResourceLocation id;
+    private final Identifier id;
 
     private final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer;
     private final ItemStack output;
@@ -43,8 +39,8 @@ public final class GenericRecipe extends CustomRecipe {
     private ItemStack result = ItemStack.EMPTY;
     private int room;
 
-    GenericRecipe(final ResourceLocation id, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final ItemStack output, final RegularIngredient[] ingredients, final AuxiliaryIngredient<?>[] auxiliaryIngredients, final int width, final int height, final int outputIngredient) {
-        super(CraftingBookCategory.MISC);
+    GenericRecipe(final Identifier id, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final ItemStack output, final RegularIngredient[] ingredients, final AuxiliaryIngredient<?>[] auxiliaryIngredients, final int width, final int height, final int outputIngredient) {
+        super();
         Preconditions.checkArgument(width > 0, "width must be greater than zero");
         Preconditions.checkArgument(height > 0, "height must be greater than zero");
         this.id = id;
@@ -86,7 +82,7 @@ public final class GenericRecipe extends CustomRecipe {
         return foundDictator;
     }
 
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return this.id;
     }
 
@@ -108,40 +104,13 @@ public final class GenericRecipe extends CustomRecipe {
         return this.room;
     }
 
-    private NonNullList<Ingredient> getDisplayIngredients() {
-        // set regular ingredients according to pattern
-        final NonNullList<Ingredient> ingredients = NonNullList.withSize(9, Ingredient.EMPTY);
-        for (int i = 0; i < this.ingredients.length; i++) {
-            final int x = i % this.width;
-            final int y = i / this.width;
-            final ItemStack[] stacks = this.ingredients[i].getInputs().toArray(new ItemStack[0]);
-            ingredients.set(x + y * 3, Ingredient.of(stacks));
-        }
-
-        // fill empty slots with required auxiliary ingredients
-        for (int i = 0, slot = 0; slot < ingredients.size(); slot++) {
-            final Ingredient ing = ingredients.get(slot);
-            if (ing.isEmpty()) {
-                while (i < this.auxiliaryIngredients.length) {
-                    final AuxiliaryIngredient<?> aux = this.auxiliaryIngredients[i++];
-                    if (aux.isRequired()) {
-                        final ItemStack[] stacks = aux.getInputs().toArray(new ItemStack[0]);
-                        ingredients.set(slot, Ingredient.of(stacks));
-                        break;
-                    }
-                }
-            }
-        }
-        return ingredients;
-    }
-
     @Override
     public boolean isSpecial() {
         return this.output.isEmpty();
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<GenericRecipe> getSerializer() {
         return this.serializer.get();
     }
 
@@ -165,12 +134,6 @@ public final class GenericRecipe extends CustomRecipe {
         return this.height;
     }
 
-    @Override
-    public NonNullList<Ingredient> getIngredients() {
-        return this.getDisplayIngredients();
-    }
-
-    @Override
     public boolean canCraftInDimensions(final int width, final int height) {
         return this.width <= width
                 && this.height <= height
@@ -278,7 +241,7 @@ public final class GenericRecipe extends CustomRecipe {
     }
 
     @Override
-    public @NotNull ItemStack assemble(final @NotNull CraftingInput inventory, final HolderLookup.Provider lookup) {
+    public @NotNull ItemStack assemble(final @NotNull CraftingInput inventory) {
         final ItemStack result = this.result;
         return result.isEmpty() ? result : result.copy();
     }

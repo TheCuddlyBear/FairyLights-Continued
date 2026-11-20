@@ -1,55 +1,81 @@
 package de.lucalabs.fairylights.main.items.crafting.ingredient;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntComparators;
-import it.unimi.dsi.fastutil.ints.IntList;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import com.mojang.datafixers.util.Either;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderOwner;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.entity.player.StackedContents;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
+import org.jetbrains.annotations.NotNull;
 
-public class LazyTagIngredient extends Ingredient {
-    private final TagKey<Item> tag;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
-    private LazyTagIngredient(final TagKey<Item> tag) {
-        super(Stream.empty());
-        this.tag = tag;
+public final class LazyTagIngredient {
+    private LazyTagIngredient() {
     }
 
-    @Override
-    public ItemStack @NotNull [] getItems() {
-        return StreamSupport.stream(BuiltInRegistries.ITEM.getTagOrEmpty(this.tag).spliterator(), false).map(ItemStack::new).toArray(ItemStack[]::new);
+    public static @NotNull Ingredient of(final @NotNull TagKey<Item> tag) {
+        return Ingredient.of(new LazyTagHolderSet(Objects.requireNonNull(tag, "tag")));
     }
 
-    @Override
-    public boolean test(@Nullable final ItemStack stack) {
-        return stack != null && stack.is(this.tag);
-    }
+    private static final class LazyTagHolderSet extends HolderSet.ListBacked<Item> {
+        private final TagKey<Item> tag;
 
-    @Override
-    public @NotNull IntList getStackingIds() {
-        final ItemStack[] stacks = this.getItems();
-        final IntList list = new IntArrayList(stacks.length);
-        for (final ItemStack stack : stacks) {
-            list.add(StackedContents.getStackingIndex(stack));
+        private LazyTagHolderSet(final TagKey<Item> tag) {
+            this.tag = tag;
         }
-        list.sort(IntComparators.NATURAL_COMPARATOR);
-        return list;
-    }
 
-    @Override
-    public boolean isEmpty() {
-        return !BuiltInRegistries.ITEM.getTagOrEmpty(this.tag).iterator().hasNext();
-    }
+        @Override
+        protected List<Holder<Item>> contents() {
+            return BuiltInRegistries.ITEM.get(this.tag)
+                    .map(named -> named.stream().toList())
+                    .orElse(List.of());
+        }
 
-    public static @NotNull LazyTagIngredient of(final @NotNull TagKey<Item> tag) {
-        return new LazyTagIngredient(tag);
+        @Override
+        public boolean isBound() {
+            return BuiltInRegistries.ITEM.get(this.tag)
+                    .map(HolderSet::isBound)
+                    .orElse(false);
+        }
+
+        @Override
+        public Either<TagKey<Item>, List<Holder<Item>>> unwrap() {
+            return Either.left(this.tag);
+        }
+
+        @Override
+        public Optional<TagKey<Item>> unwrapKey() {
+            return Optional.of(this.tag);
+        }
+
+        @Override
+        public boolean contains(final Holder<Item> value) {
+            return value.is(this.tag);
+        }
+
+        @Override
+        public boolean canSerializeIn(final HolderOwner<Item> owner) {
+            return BuiltInRegistries.ITEM.canSerializeIn(owner);
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            return this == obj || (obj instanceof LazyTagHolderSet other && this.tag.equals(other.tag));
+        }
+
+        @Override
+        public int hashCode() {
+            return this.tag.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return "LazyTagHolderSet(" + this.tag + ")";
+        }
     }
 }

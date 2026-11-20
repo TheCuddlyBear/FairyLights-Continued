@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
@@ -76,6 +75,6 @@ public final class DyeableItem {
     }
 
     public static int getColor(final CompoundTag tag) {
-        return tag.contains("color", Tag.TAG_INT) ? tag.getInt("color") : 0xFFFFFFFF;
+        return tag.getIntOr("color", 0xFFFFFFFF);
     }
 }

@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import net.minecraft.core.component.PatchedDataComponentMap;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.world.item.ItemStack;
@@ -45,7 +44,9 @@ public interface GenericIngredient<I extends GenericIngredient<I, M>, M extends 
 
     default ImmutableList<ItemStack> getMatchingSubtypes(final Ingredient stack) {
         Objects.requireNonNull(stack, "stack");
-        return ImmutableList.copyOf(stack.getItems());
+        return stack.items()
+                .map(ItemStack::new)
+                .collect(ImmutableList.toImmutableList());
     }
 
     default List<FormattedText> getTooltip() {

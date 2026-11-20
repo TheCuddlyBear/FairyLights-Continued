@@ -5,7 +5,7 @@ import de.lucalabs.fairylights.main.items.crafting.ingredient.AuxiliaryIngredien
 import de.lucalabs.fairylights.main.items.crafting.ingredient.BasicRegularIngredient;
 import de.lucalabs.fairylights.main.items.crafting.ingredient.InertBasicAuxiliaryIngredient;
 import de.lucalabs.fairylights.main.items.crafting.ingredient.LazyTagIngredient;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -25,25 +25,25 @@ public final class GenericRecipeBuilder {
     private int width;
     private int height;
 
-    private final ResourceLocation name;
+    private final Identifier name;
 
     private final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer;
     private final Map<Character, RegularIngredient> ingredients = new HashMap<>();
     private final List<AuxiliaryIngredient<?>> auxiliaryIngredients = new ArrayList<>();
 
-    public GenericRecipeBuilder(final ResourceLocation name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer) {
+    public GenericRecipeBuilder(final Identifier name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer) {
         this(name, serializer, ItemStack.EMPTY);
     }
 
-    public GenericRecipeBuilder(final ResourceLocation name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final Item item) {
+    public GenericRecipeBuilder(final Identifier name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final Item item) {
         this(name, serializer, new ItemStack(item));
     }
 
-    public GenericRecipeBuilder(final ResourceLocation name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final Block block) {
+    public GenericRecipeBuilder(final Identifier name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final Block block) {
         this(name, serializer, new ItemStack(block));
     }
 
-    public GenericRecipeBuilder(final ResourceLocation name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final ItemStack output) {
+    public GenericRecipeBuilder(final Identifier name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final ItemStack output) {
         this.name = name;
         this.serializer = serializer;
         this.output = Objects.requireNonNull(output, "output");
@@ -98,15 +98,15 @@ public final class GenericRecipeBuilder {
     }
 
     public GenericRecipeBuilder withIngredient(final char key, final Item item) {
-        return this.withIngredient(key, new ItemStack(Objects.requireNonNull(item, "item"), 1));
+        return this.withIngredient(key, Ingredient.of(Objects.requireNonNull(item, "item")));
     }
 
     public GenericRecipeBuilder withIngredient(final char key, final Block block) {
-        return this.withIngredient(key, new ItemStack(Objects.requireNonNull(block, "block"), 1));
+        return this.withIngredient(key, Ingredient.of(Objects.requireNonNull(block, "block")));
     }
 
     public GenericRecipeBuilder withIngredient(final char key, final ItemStack stack) {
-        return this.withIngredient(key, Ingredient.of(Objects.requireNonNull(stack, "stack")));
+        return this.withIngredient(key, Ingredient.of(Objects.requireNonNull(stack, "stack").getItem()));
     }
 
     public GenericRecipeBuilder withIngredient(final char key, final Ingredient ingredient) {
@@ -123,19 +123,19 @@ public final class GenericRecipeBuilder {
     }
 
     public GenericRecipeBuilder withAuxiliaryIngredient(final Item item) {
-        return this.withAuxiliaryIngredient(new ItemStack(Objects.requireNonNull(item, "item")));
+        return this.withAuxiliaryIngredient(Objects.requireNonNull(item, "item"), false, 1);
     }
 
     public GenericRecipeBuilder withAuxiliaryIngredient(final Item item, final boolean isRequired, final int limit) {
-        return this.withAuxiliaryIngredient(new ItemStack(Objects.requireNonNull(item, "item")), isRequired, limit);
+        return this.withAuxiliaryIngredient(Ingredient.of(Objects.requireNonNull(item, "item")), isRequired, limit);
     }
 
     public GenericRecipeBuilder withAuxiliaryIngredient(final Block block) {
-        return this.withAuxiliaryIngredient(new ItemStack(Objects.requireNonNull(block, "block")));
+        return this.withAuxiliaryIngredient(Objects.requireNonNull(block, "block"), false, 1);
     }
 
     public GenericRecipeBuilder withAuxiliaryIngredient(final Block block, final boolean isRequired, final int limit) {
-        return this.withAuxiliaryIngredient(new ItemStack(Objects.requireNonNull(block, "block")), isRequired, limit);
+        return this.withAuxiliaryIngredient(Ingredient.of(Objects.requireNonNull(block, "block")), isRequired, limit);
     }
 
     public GenericRecipeBuilder withAuxiliaryIngredient(final ItemStack stack) {
@@ -143,7 +143,7 @@ public final class GenericRecipeBuilder {
     }
 
     public GenericRecipeBuilder withAuxiliaryIngredient(final ItemStack stack, final boolean isRequired, final int limit) {
-        return this.withAuxiliaryIngredient(new InertBasicAuxiliaryIngredient(Ingredient.of(Objects.requireNonNull(stack, "stack")), isRequired, limit));
+        return this.withAuxiliaryIngredient(new InertBasicAuxiliaryIngredient(Ingredient.of(Objects.requireNonNull(stack, "stack").getItem()), isRequired, limit));
     }
 
     public GenericRecipeBuilder withAuxiliaryIngredient(final TagKey<Item> tag) {
@@ -200,7 +200,7 @@ public final class GenericRecipeBuilder {
             return new BasicRegularIngredient(Ingredient.of((Block) object));
         }
         if (object instanceof ItemStack) {
-            return new BasicRegularIngredient(Ingredient.of((ItemStack) object));
+            return new BasicRegularIngredient(Ingredient.of(((ItemStack) object).getItem()));
         }
         if (object instanceof TagKey<?>) {
             return new BasicRegularIngredient(LazyTagIngredient.of((TagKey<Item>) object));

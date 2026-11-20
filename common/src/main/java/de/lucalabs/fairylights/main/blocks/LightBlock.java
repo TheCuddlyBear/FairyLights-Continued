@@ -8,7 +8,6 @@ import de.lucalabs.fairylights.main.items.LightVariant;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -213,10 +212,11 @@ public class LightBlock extends FaceAttachedHorizontalDirectionalBlock implement
     }
 
     @Override
-    public @NotNull ItemStack getCloneItemStack(
+    protected @NotNull ItemStack getCloneItemStack(
             final LevelReader world,
             final @NotNull BlockPos pos,
-            final @NotNull BlockState state) {
+            final @NotNull BlockState state,
+            final boolean includeData) {
         final BlockEntity entity = world.getBlockEntity(pos);
         if (entity instanceof LightBlockEntity) {
             return ((LightBlockEntity) entity).getLight().getItem().copy();

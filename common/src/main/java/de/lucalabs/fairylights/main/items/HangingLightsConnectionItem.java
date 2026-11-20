@@ -6,12 +6,13 @@ import de.lucalabs.fairylights.main.registries.FairyLightRegistries;
 import de.lucalabs.fairylights.main.string.StringTypes;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
+import java.util.function.Consumer;
 
 public final class HangingLightsConnectionItem extends ConnectionItem {
     public HangingLightsConnectionItem(final Properties properties) {
@@ -22,22 +23,25 @@ public final class HangingLightsConnectionItem extends ConnectionItem {
     public void appendHoverText(
             @NotNull ItemStack stack,
             @NotNull TooltipContext context,
-            @NotNull List<Component> tooltip,
+            @NotNull TooltipDisplay display,
+            @NotNull Consumer<Component> tooltip,
             @NotNull TooltipFlag type) {
         final ComponentRecords.ConnectionLogic logic = ComponentRecords.ConnectionLogic.fromItemStack(stack);
         if (logic == null) {
             return;
         }
 
-        final ResourceLocation name = FairyLightRegistries.STRING_TYPES.getKey(logic.string().orElse(StringTypes.BLACK_STRING));
-        tooltip.add(Component.translatable("item." + name.getNamespace() + "." + name.getPath()).withStyle(ChatFormatting.GRAY));
+        final Identifier name = FairyLightRegistries.STRING_TYPES.getKey(logic.string().orElse(StringTypes.BLACK_STRING));
+        if (name != null) {
+            tooltip.accept(Component.translatable("item." + name.getNamespace() + "." + name.getPath()).withStyle(ChatFormatting.GRAY));
+        }
 
         if (!logic.pattern().isEmpty()) {
-            tooltip.add(Component.empty());
+            tooltip.accept(Component.empty());
         }
         for (ItemStack lightStack : logic.pattern()) {
-            tooltip.add(lightStack.getHoverName());
-            lightStack.getItem().appendHoverText(lightStack, context, tooltip, type);
+            tooltip.accept(lightStack.getHoverName());
+            lightStack.getItem().appendHoverText(lightStack, context, display, tooltip, type);
         }
     }
 }

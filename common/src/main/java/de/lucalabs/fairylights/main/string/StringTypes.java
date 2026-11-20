@@ -5,7 +5,7 @@ import de.lucalabs.fairylights.Constants;
 import de.lucalabs.fairylights.main.registries.FairyLightRegistries;
 import java.util.function.Supplier;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class StringTypes {
 
@@ -13,7 +13,7 @@ public class StringTypes {
     public static final StringType WHITE_STRING = register("white_string", () -> new StringType(0xFFF0F0F0));
 
     private static StringType register(final String name, Supplier<? extends StringType> supplier) {
-        ResourceLocation identifier = Common.id(name);
+        Identifier identifier = Common.id(name);
         return Registry.register(FairyLightRegistries.STRING_TYPES, identifier, supplier.get());
     }
 

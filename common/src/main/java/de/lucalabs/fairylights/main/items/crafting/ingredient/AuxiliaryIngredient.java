@@ -9,7 +9,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import net.minecraft.core.component.PatchedDataComponentMap;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.world.item.ItemStack;

@@ -3,7 +3,6 @@ package de.lucalabs.fairylights.main.items;
 import de.lucalabs.fairylights.main.feature.light.LightBehavior;
 import de.lucalabs.fairylights.main.registries.FairyLightRegistries;
 import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Contract;
@@ -16,7 +15,7 @@ public abstract class LightVariant<T extends LightBehavior> {
     @SuppressWarnings("unchecked")
     @Contract(value = "null -> null; !null -> !null")
     public static <R extends LightBehavior> LightVariant<R> getLightVariant(Identifier id) {
-        return (LightVariant<R>) FairyLightRegistries.LIGHT_VARIANTS.get(id);
+        return (LightVariant<R>) FairyLightRegistries.LIGHT_VARIANTS.getValue(id);
     }
 
     public abstract boolean parallelsCord();

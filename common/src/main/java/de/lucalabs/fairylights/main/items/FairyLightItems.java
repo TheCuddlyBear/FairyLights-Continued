@@ -6,22 +6,24 @@ import de.lucalabs.fairylights.main.blocks.FairyLightBlocks;
 import de.lucalabs.fairylights.main.blocks.LightBlock;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 
 import static de.lucalabs.fairylights.main.items.components.FairyLightItemComponents.LIGHT_VARIANT;
 
 public final class FairyLightItems {
 
-    public static final ConnectionItem HANGING_LIGHTS = register("hanging_lights", () -> new HangingLightsConnectionItem(defaultProperties()));
-    public static final ConnectionItem PENNANT_BUNTING = register("pennant_bunting", () -> new PennantBuntingConnectionItem(defaultProperties()));
+    public static final ConnectionItem HANGING_LIGHTS = register("hanging_lights", HangingLightsConnectionItem::new);
+    public static final ConnectionItem PENNANT_BUNTING = register("pennant_bunting", PennantBuntingConnectionItem::new);
 
-    public static final ConnectionItem TINSEL = register("tinsel", () -> new TinselConnectionItem(defaultProperties()));
-    public static final ConnectionItem GARLAND = register("garland", () -> new GarlandConnectionItem(defaultProperties()));
+    public static final ConnectionItem TINSEL = register("tinsel", TinselConnectionItem::new);
+    public static final ConnectionItem GARLAND = register("garland", GarlandConnectionItem::new);
 
     public static final LightItem FAIRY_LIGHT = register("fairy_light", createColorLight(FairyLightBlocks.FAIRY_LIGHT));
     public static final LightItem PAPER_LANTERN = register("paper_lantern", createColorLight(FairyLightBlocks.PAPER_LANTERN));
@@ -43,29 +45,29 @@ public final class FairyLightItems {
     public static final LightItem OIL_LANTERN = register("oil_lantern", createLight(FairyLightBlocks.OIL_LANTERN, LightItem::new));
     public static final LightItem INCANDESCENT_LIGHT = register("incandescent_light", createLight(FairyLightBlocks.INCANDESCENT_LIGHT, LightItem::new));
 
-    public static final Item TRIANGLE_PENNANT = register("triangle_pennant", () -> new PennantItem(defaultProperties()));
-    public static final Item SQUARE_PENNANT = register("square_pennant", () -> new PennantItem(defaultProperties()));
+    public static final Item TRIANGLE_PENNANT = register("triangle_pennant", PennantItem::new);
+    public static final Item SQUARE_PENNANT = register("square_pennant", PennantItem::new);
 
     private FairyLightItems() {
     }
 
-    private static Item.Properties defaultProperties() {
-        return new Item.Properties();
-    }
-
-    private static Supplier<LightItem> createLight(
+    private static Function<Item.Properties, LightItem> createLight(
             final LightBlock block,
             final BiFunction<LightBlock, Item.Properties, LightItem> factory) {
-        return () -> factory.apply(block, defaultProperties().stacksTo(16).component(LIGHT_VARIANT, block.getVariant().getId()));
+        return properties -> factory.apply(
+                block,
+                properties.useBlockDescriptionPrefix().stacksTo(16).component(LIGHT_VARIANT, block.getVariant().getId())
+        );
     }
 
-    private static Supplier<LightItem> createColorLight(final LightBlock block) {
+    private static Function<Item.Properties, LightItem> createColorLight(final LightBlock block) {
         return createLight(block, ColorLightItem::new);
     }
 
-    private static <T extends Item> T register(final String name, Supplier<T> supplier) {
-        ResourceLocation identifier = Common.id(name);
-        return Registry.register(BuiltInRegistries.ITEM, identifier, supplier.get());
+    private static <T extends Item> T register(final String name, Function<Item.Properties, T> factory) {
+        Identifier identifier = Common.id(name);
+        ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, identifier);
+        return Registry.register(BuiltInRegistries.ITEM, key, factory.apply(new Item.Properties().setId(key)));
     }
 
     public static void initialize() {

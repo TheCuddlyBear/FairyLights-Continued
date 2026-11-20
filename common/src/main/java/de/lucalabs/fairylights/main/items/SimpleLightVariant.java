@@ -8,7 +8,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 
@@ -176,7 +175,7 @@ public class SimpleLightVariant<T extends LightBehavior> extends LightVariant<T>
             stack -> new IncandescentBehavior(),
             true);
 
-    private final ResourceLocation id;
+    private final Identifier id;
 
     private final boolean parallelsCord;
 
@@ -190,11 +189,11 @@ public class SimpleLightVariant<T extends LightBehavior> extends LightVariant<T>
 
     private final boolean orientable;
 
-    SimpleLightVariant(final ResourceLocation id, final boolean parallelsCord, final float spacing, final AABB bounds, final double floorOffset, final Function<ItemStack, T> behaviorFactory) {
+    SimpleLightVariant(final Identifier id, final boolean parallelsCord, final float spacing, final AABB bounds, final double floorOffset, final Function<ItemStack, T> behaviorFactory) {
         this(id, parallelsCord, spacing, bounds, floorOffset, behaviorFactory, false);
     }
 
-    SimpleLightVariant(final ResourceLocation id, final boolean parallelsCord, final float spacing, final AABB bounds, final double floorOffset, final Function<ItemStack, T> behaviorFactory, final boolean orientable) {
+    SimpleLightVariant(final Identifier id, final boolean parallelsCord, final float spacing, final AABB bounds, final double floorOffset, final Function<ItemStack, T> behaviorFactory, final boolean orientable) {
         this.id = id;
         this.parallelsCord = parallelsCord;
         this.spacing = spacing;
@@ -230,7 +229,7 @@ public class SimpleLightVariant<T extends LightBehavior> extends LightVariant<T>
     }
 
     private static <T extends LightBehavior> LightVariant<T> getRegistered(String id, final boolean parallelsCord, final float spacing, final AABB bounds, final double floorOffset, final Function<ItemStack, T> behaviorFactory, final boolean orientable) {
-        ResourceLocation identifier = Common.id(id);
+        Identifier identifier = Common.id(id);
         return Registry.register(
                 FairyLightRegistries.LIGHT_VARIANTS,
                 identifier,

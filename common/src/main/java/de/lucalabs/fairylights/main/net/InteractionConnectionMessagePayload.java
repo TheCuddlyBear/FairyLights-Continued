@@ -17,7 +17,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,7 +31,7 @@ public record InteractionConnectionMessagePayload(
         int featureId
 ) implements CustomPacketPayload {
 
-    public static final ResourceLocation PAYLOAD_ID = Common.id("pl_interaction_connection");
+    public static final Identifier PAYLOAD_ID = Common.id("pl_interaction_connection");
     public static final CustomPacketPayload.Type<InteractionConnectionMessagePayload> ID
             = new CustomPacketPayload.Type<>(PAYLOAD_ID);
 

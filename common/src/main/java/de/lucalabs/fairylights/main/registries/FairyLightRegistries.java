@@ -8,13 +8,13 @@ import de.lucalabs.fairylights.vendor.fabricapi.registries.RegistryBuilder;
 import de.lucalabs.fairylights.main.string.StringType;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public final class FairyLightRegistries {
 
-    private static final ResourceLocation CONNECTION_TYPE_ID = Common.id("connection_type");
-    private static final ResourceLocation STRING_TYPE_ID = Common.id("string_type");
-    private static final ResourceLocation LIGHT_VARIANT_ID = Common.id("variant");
+    private static final Identifier CONNECTION_TYPE_ID = Common.id("connection_type");
+    private static final Identifier STRING_TYPE_ID = Common.id("string_type");
+    private static final Identifier LIGHT_VARIANT_ID = Common.id("variant");
 
     public static final ResourceKey<Registry<ConnectionType<?>>> CONNECTION_TYPE_KEY
             = ResourceKey.createRegistryKey(CONNECTION_TYPE_ID);

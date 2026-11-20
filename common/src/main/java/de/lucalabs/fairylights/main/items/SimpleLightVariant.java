@@ -7,6 +7,7 @@ import de.lucalabs.fairylights.main.registries.FairyLightRegistries;
 import java.util.Objects;
 import java.util.function.Function;
 import net.minecraft.core.Registry;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
@@ -245,7 +246,7 @@ public class SimpleLightVariant<T extends LightBehavior> extends LightVariant<T>
     }
 
     @Override
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return id;
     }
 

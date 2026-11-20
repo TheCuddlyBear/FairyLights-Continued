@@ -2,11 +2,11 @@ package de.lucalabs.fairylights.main.items;
 
 import de.lucalabs.fairylights.main.feature.light.LightBehavior;
 import de.lucalabs.fairylights.main.registries.FairyLightRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.Nullable;
 
 public abstract class LightVariant<T extends LightBehavior> {
 
@@ -15,7 +15,7 @@ public abstract class LightVariant<T extends LightBehavior> {
     // TODO | The whole architecture should be refactored at some point.
     @SuppressWarnings("unchecked")
     @Contract(value = "null -> null; !null -> !null")
-    public static <R extends LightBehavior> LightVariant<R> getLightVariant(@Nullable ResourceLocation id) {
+    public static <R extends LightBehavior> LightVariant<R> getLightVariant(Identifier id) {
         return (LightVariant<R>) FairyLightRegistries.LIGHT_VARIANTS.get(id);
     }
 
@@ -31,5 +31,5 @@ public abstract class LightVariant<T extends LightBehavior> {
 
     public abstract boolean isOrientable();
 
-    public abstract ResourceLocation getId();
+    public abstract Identifier getId();
 }

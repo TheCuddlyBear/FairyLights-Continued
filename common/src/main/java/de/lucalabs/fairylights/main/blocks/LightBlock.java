@@ -7,6 +7,7 @@ import de.lucalabs.fairylights.main.items.DyeableItem;
 import de.lucalabs.fairylights.main.items.LightVariant;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
@@ -99,12 +100,14 @@ public class LightBlock extends FaceAttachedHorizontalDirectionalBlock implement
         return new LightBlockEntity(pos, state);
     }
 
+    public static final MapCodec<LightBlock> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+            propertiesCodec(),
+            Identifier.CODEC.fieldOf("variant").forGetter(block -> block.variant.getId())
+    ).apply(i, (properties, variantId) -> new LightBlock(properties, LightVariant.getLightVariant(variantId))));
+
     @Override
     protected MapCodec<? extends FaceAttachedHorizontalDirectionalBlock> codec() {
-        // TODO check if this is valid
-        return RecordCodecBuilder.<LightBlock>mapCodec(i -> i.group(
-                ResourceLocation.CODEC.fieldOf("variant").forGetter(x -> this.variant.getId())
-        ).apply(i, c -> new LightBlock(Properties.of(), LightVariant.getLightVariant(c))));
+        return CODEC;
     }
 
     @Override

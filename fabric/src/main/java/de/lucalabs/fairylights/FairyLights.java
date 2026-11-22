@@ -45,7 +45,7 @@ public class FairyLights implements ModInitializer {
         ConnectionTypes.initialize();
         StringTypes.initialize();
 
-        PayloadTypeRegistry.playC2S().register(InteractionConnectionMessagePayload.ID, InteractionConnectionMessagePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(InteractionConnectionMessagePayload.ID, InteractionConnectionMessagePayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(InteractionConnectionMessagePayload.ID, InteractionConnectionMessage::apply);
     }
 }

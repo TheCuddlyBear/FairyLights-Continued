@@ -16,16 +16,11 @@ import de.lucalabs.fairylights.main.sounds.FairyLightSounds;
 import de.lucalabs.fairylights.main.string.StringTypes;
 import de.lucalabs.fairylights.main.util.Tags;
 import de.lucalabs.fairylights.mixin.MappedRegistryAccessor;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.WritableRegistry;
-import net.minecraft.data.DataGenerator;
-import net.minecraft.data.PackOutput;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
-
-import java.util.concurrent.CompletableFuture;
 
 @Mod(Constants.MOD_ID)
 public class FairyLights {
@@ -34,7 +29,7 @@ public class FairyLights {
 
     public FairyLights(final IEventBus modBus) {
         modBus.addListener(RegisterEvent.class, this::onRegister);
-        modBus.addListener(GatherDataEvent.class, this::onGatherData);
+        modBus.addListener(GatherDataEvent.Client.class, this::onGatherData);
         FairyLightsAttachments.init(modBus);
         FairyLightItemGroups.init(modBus);
         NeoForgeNetworking.init(modBus);
@@ -76,14 +71,7 @@ public class FairyLights {
         StringTypes.initialize();
     }
 
-    private void onGatherData(GatherDataEvent event) {
-        DataGenerator generator = event.getGenerator();
-        PackOutput output = generator.getPackOutput();
-        CompletableFuture<HolderLookup.Provider> lookupProvider = event.getLookupProvider();
-
-        generator.addProvider(
-                event.includeServer(),
-                new FairyLightCraftingProvider(output, lookupProvider)
-        );
+    private void onGatherData(final GatherDataEvent.Client event) {
+        event.createProvider(FairyLightCraftingProvider.Runner::new);
     }
 }

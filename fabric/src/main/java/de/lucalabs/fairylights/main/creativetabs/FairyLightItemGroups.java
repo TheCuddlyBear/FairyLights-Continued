@@ -5,11 +5,11 @@ import de.lucalabs.fairylights.Constants;
 import de.lucalabs.fairylights.main.items.DyeableItem;
 import de.lucalabs.fairylights.main.items.FairyLightItems;
 import de.lucalabs.fairylights.main.items.crafting.FairyLightCraftingRecipes;
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
+import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
@@ -24,7 +24,7 @@ public final class FairyLightItemGroups {
 
     public static final CreativeModeTab FAIRY_LIGHTS = register(
             Common.id("item_group"),
-            FabricItemGroup.builder()
+            FabricCreativeModeTab.builder()
                     .icon(() -> new ItemStack(FairyLightItems.HANGING_LIGHTS))
                     .title(Component.translatable("itemGroup.fairylights"))
                     .displayItems((context, entries) -> {
@@ -76,7 +76,7 @@ public final class FairyLightItemGroups {
         return stacks;
     }
 
-    private static CreativeModeTab register(final ResourceLocation name, final CreativeModeTab.Builder g) {
+    private static CreativeModeTab register(final Identifier name, final CreativeModeTab.Builder g) {
         return Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, name, g.build());
     }
 

@@ -13,8 +13,7 @@ import de.lucalabs.fairylights.client.renderer.block.entity.PennantBuntingRender
 import de.lucalabs.fairylights.client.renderer.entity.FenceFastenerRenderer;
 import de.lucalabs.fairylights.main.blocks.entity.FairyLightBlockEntities;
 import de.lucalabs.fairylights.main.entity.FairyLightEntities;
-import net.minecraft.client.resources.model.ModelResourceLocation;
-import net.minecraft.resources.ResourceLocation;
+import de.lucalabs.fairylights.platform.NeoForgeModelLoader;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -73,15 +72,12 @@ public final class FairyLightsClient {
     }
 
     @SubscribeEvent
-    public static void onRegisterAdditionalModels(final ModelEvent.RegisterAdditional event) {
-        event.register(ModelResourceLocation.standalone(FenceFastenerRenderer.MODEL));
-        for (final ResourceLocation model : PennantBuntingRenderer.MODELS) {
-            event.register(ModelResourceLocation.standalone(model));
-        }
+    public static void onRegisterStandaloneModels(final ModelEvent.RegisterStandalone event) {
+        NeoForgeModelLoader.registerStandaloneModels(event);
     }
 
     @SubscribeEvent
-    public static void onRegisterItemColors(final RegisterColorHandlersEvent.Item event) {
+    public static void onRegisterItemTintSources(final RegisterColorHandlersEvent.ItemTintSources event) {
         ItemColorManager.setupColors(event);
     }
 }

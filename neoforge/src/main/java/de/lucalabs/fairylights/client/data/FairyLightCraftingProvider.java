@@ -6,30 +6,29 @@ import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
-import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.world.item.Items;
 
 import java.util.concurrent.CompletableFuture;
 
 public class FairyLightCraftingProvider extends RecipeProvider {
-    public FairyLightCraftingProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> registries) {
-        super(output, registries);
+    public FairyLightCraftingProvider(final HolderLookup.Provider registries, final RecipeOutput output) {
+        super(registries, output);
     }
 
     @Override
-    protected void buildRecipes(RecipeOutput exporter) {
-        ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, FairyLightItems.INCANDESCENT_LIGHT, 4)
+    protected void buildRecipes() {
+        this.shaped(RecipeCategory.DECORATIONS, FairyLightItems.INCANDESCENT_LIGHT, 4)
                 .pattern(" I ")
                 .pattern("ITI")
                 .pattern(" G ")
                 .define('I', Items.IRON_INGOT)
                 .define('G', Items.GLASS_PANE)
                 .define('T', Items.TORCH)
-                .unlockedBy("has_iron", has(Items.IRON_INGOT))
-                .unlockedBy("has_torch", has(Items.TORCH))
-                .save(exporter);
+                .unlockedBy("has_iron", this.has(Items.IRON_INGOT))
+                .unlockedBy("has_torch", this.has(Items.TORCH))
+                .save(this.output);
 
-        ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, FairyLightItems.OIL_LANTERN, 4)
+        this.shaped(RecipeCategory.DECORATIONS, FairyLightItems.OIL_LANTERN, 4)
                 .pattern(" I ")
                 .pattern("STS")
                 .pattern("IGI")
@@ -37,28 +36,43 @@ public class FairyLightCraftingProvider extends RecipeProvider {
                 .define('G', Items.GLASS_PANE)
                 .define('T', Items.TORCH)
                 .define('S', Items.STICK)
-                .unlockedBy("has_iron", has(Items.IRON_INGOT))
-                .unlockedBy("has_torch", has(Items.TORCH))
-                .save(exporter);
+                .unlockedBy("has_iron", this.has(Items.IRON_INGOT))
+                .unlockedBy("has_torch", this.has(Items.TORCH))
+                .save(this.output);
 
-        ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, FairyLightItems.CANDLE_LANTERN, 4)
+        this.shaped(RecipeCategory.DECORATIONS, FairyLightItems.CANDLE_LANTERN, 4)
                 .pattern(" I ")
                 .pattern("GTG")
                 .pattern("IGI")
                 .define('I', Items.IRON_INGOT)
                 .define('G', Items.GOLD_NUGGET)
                 .define('T', Items.TORCH)
-                .unlockedBy("has_iron", has(Items.IRON_INGOT))
-                .unlockedBy("has_torch", has(Items.TORCH))
-                .save(exporter);
+                .unlockedBy("has_iron", this.has(Items.IRON_INGOT))
+                .unlockedBy("has_torch", this.has(Items.TORCH))
+                .save(this.output);
 
-        ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, FairyLightItems.GARLAND, 2)
+        this.shaped(RecipeCategory.DECORATIONS, FairyLightItems.GARLAND, 2)
                 .pattern("I-I")
                 .define('I', Items.IRON_INGOT)
                 .define('-', Items.VINE)
-                .unlockedBy("has_iron", has(Items.IRON_INGOT))
-                .unlockedBy("has_vine", has(Items.VINE))
-                .save(exporter);
+                .unlockedBy("has_iron", this.has(Items.IRON_INGOT))
+                .unlockedBy("has_vine", this.has(Items.VINE))
+                .save(this.output);
     }
 
+    public static final class Runner extends RecipeProvider.Runner {
+        public Runner(final PackOutput output, final CompletableFuture<HolderLookup.Provider> registries) {
+            super(output, registries);
+        }
+
+        @Override
+        protected RecipeProvider createRecipeProvider(final HolderLookup.Provider registries, final RecipeOutput output) {
+            return new FairyLightCraftingProvider(registries, output);
+        }
+
+        @Override
+        public String getName() {
+            return "Fairy Lights Recipes";
+        }
+    }
 }

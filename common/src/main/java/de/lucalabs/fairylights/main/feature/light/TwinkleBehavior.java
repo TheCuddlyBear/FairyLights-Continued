@@ -39,6 +39,6 @@ public class TwinkleBehavior implements BrightnessLightBehavior {
 
     @Override
     public void tick(final Level world, final Vec3 origin, final Light<?> light) {
-        this.logic.tick(world.random, this.powered);
+        this.logic.tick(world.getRandom(), this.powered);
     }
 }

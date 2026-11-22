@@ -4,10 +4,14 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import de.lucalabs.fairylights.main.blocks.entity.FastenerBlockEntity;
 import de.lucalabs.fairylights.main.fastener.RegularBlockView;
 import de.lucalabs.fairylights.platform.Services;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * NeoForge frustum-culls block entities by {@link #getRenderBoundingBox}, whose default is the
@@ -20,7 +24,8 @@ import net.minecraft.world.phys.AABB;
  * fastener entity does via {@code getBoundingBoxForCulling}. The render box hook only exists on
  * NeoForge, so it cannot live in the common renderer.
  */
-public final class NeoForgeFastenerBlockEntityRenderer implements BlockEntityRenderer<FastenerBlockEntity> {
+public final class NeoForgeFastenerBlockEntityRenderer
+        implements BlockEntityRenderer<FastenerBlockEntity, FastenerBlockEntityRenderer.FastenerRenderState> {
 
     private final FastenerBlockEntityRenderer delegate;
 
@@ -29,14 +34,32 @@ public final class NeoForgeFastenerBlockEntityRenderer implements BlockEntityRen
     }
 
     @Override
-    public void render(final FastenerBlockEntity fastener, final float delta, final PoseStack matrix,
-                       final MultiBufferSource bufferSource, final int packedLight, final int packedOverlay) {
-        this.delegate.render(fastener, delta, matrix, bufferSource, packedLight, packedOverlay);
+    public FastenerBlockEntityRenderer.FastenerRenderState createRenderState() {
+        return this.delegate.createRenderState();
     }
 
     @Override
-    public boolean shouldRenderOffScreen(final FastenerBlockEntity fastener) {
-        return this.delegate.shouldRenderOffScreen(fastener);
+    public void extractRenderState(
+            final FastenerBlockEntity fastener,
+            final FastenerBlockEntityRenderer.FastenerRenderState state,
+            final float partialTicks,
+            final Vec3 cameraPosition,
+            final ModelFeatureRenderer.@Nullable CrumblingOverlay breakProgress) {
+        this.delegate.extractRenderState(fastener, state, partialTicks, cameraPosition, breakProgress);
+    }
+
+    @Override
+    public void submit(
+            final FastenerBlockEntityRenderer.FastenerRenderState state,
+            final PoseStack matrix,
+            final SubmitNodeCollector submitNodeCollector,
+            final CameraRenderState camera) {
+        this.delegate.submit(state, matrix, submitNodeCollector, camera);
+    }
+
+    @Override
+    public boolean shouldRenderOffScreen() {
+        return this.delegate.shouldRenderOffScreen();
     }
 
     @Override

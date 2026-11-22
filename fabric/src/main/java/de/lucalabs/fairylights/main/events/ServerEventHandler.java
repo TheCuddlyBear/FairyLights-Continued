@@ -4,7 +4,7 @@ import de.lucalabs.fairylights.Constants;
 import de.lucalabs.fairylights.main.entity.FenceFastenerEntity;
 import de.lucalabs.fairylights.main.items.ConnectionItem;
 import de.lucalabs.fairylights.platform.Services;
-import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
@@ -17,17 +17,17 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.BlockHitResult;
 
 public final class ServerEventHandler {
     private ServerEventHandler() {
     }
 
     // TODO no fucking idea what this function does
-    public static InteractionResult onRightClickBlock(Player player, Level world, InteractionHand hand, HitResult hitResult) {
+    public static InteractionResult onRightClickBlock(Player player, Level world, InteractionHand hand, BlockHitResult hitResult) {
         boolean shouldFail = false;
 
-        final BlockPos pos = new BlockPos((int) hitResult.getLocation().x, (int) hitResult.getLocation().y, (int) hitResult.getLocation().z);
+        final BlockPos pos = hitResult.getBlockPos();
         if (!(world.getBlockState(pos).getBlock() instanceof FenceBlock)) {
             return InteractionResult.PASS;
         }
@@ -75,7 +75,7 @@ public final class ServerEventHandler {
         Constants.LOG.info("initializing event listener");
         UseBlockCallback.EVENT.register(ServerEventHandler::onRightClickBlock);
 
-        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register(((player, origin, dest) -> {
+        ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register(((player, origin, dest) -> {
             Constants.LOG.info("changed dimension to {}", dest.dimension());
             Services.COMPONENTS.maybeGet(player, Services.KEYS.FASTENER()).ifPresent(f -> f.setWorld(dest));
         }));

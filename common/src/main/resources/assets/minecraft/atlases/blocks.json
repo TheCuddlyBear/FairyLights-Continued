@@ -29,7 +29,7 @@
       "resource": "fairylights:entity/triangle_pennant"
     },
     {
-      "type": "directory",
+      "type": "minecraft:directory",
       "source": "entity/letter",
       "prefix": "entity/letter/"
     }

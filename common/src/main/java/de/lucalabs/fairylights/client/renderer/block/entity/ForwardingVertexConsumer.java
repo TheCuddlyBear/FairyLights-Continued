@@ -8,41 +8,49 @@ public abstract class ForwardingVertexConsumer implements VertexConsumer {
 
     @Override
     public @NotNull VertexConsumer addVertex(float x, float y, float z) {
-        return this.delegate().addVertex(x, y, z);
+        this.delegate().addVertex(x, y, z);
+        return this;
     }
 
     @Override
     public @NotNull VertexConsumer setColor(int r, int g, int b, int a) {
-        return this.delegate().setColor(r, g, b, a);
+        this.delegate().setColor(r, g, b, a);
+        return this;
     }
 
     @Override
     public @NotNull VertexConsumer setColor(int color) {
-        return this.delegate().setColor(color);
+        this.delegate().setColor(color);
+        return this;
     }
 
     @Override
     public @NotNull VertexConsumer setUv(float u, float v) {
-        return this.delegate().setUv(u, v);
+        this.delegate().setUv(u, v);
+        return this;
     }
 
     @Override
     public @NotNull VertexConsumer setUv1(int u, int v) {
-        return this.delegate().setUv1(u, v);
+        this.delegate().setUv1(u, v);
+        return this;
     }
 
     @Override
     public @NotNull VertexConsumer setUv2(int u, int v) {
-        return this.delegate().setUv2(u, v);
+        this.delegate().setUv2(u, v);
+        return this;
     }
 
     @Override
     public @NotNull VertexConsumer setNormal(float x, float y, float z) {
-        return this.delegate().setNormal(x, y, z);
+        this.delegate().setNormal(x, y, z);
+        return this;
     }
 
     @Override
     public @NotNull VertexConsumer setLineWidth(float width) {
-        return this.delegate().setLineWidth(width);
+        this.delegate().setLineWidth(width);
+        return this;
     }
 }

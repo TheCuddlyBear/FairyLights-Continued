@@ -173,9 +173,9 @@ public abstract class Connection {
             final ItemEntity item = new ItemEntity(this.world, hit.x, hit.y, hit.z, stack);
             final float scale = 0.05F;
             item.setDeltaMovement(
-                    this.world.random.nextGaussian() * scale,
-                    this.world.random.nextGaussian() * scale + 0.2F,
-                    this.world.random.nextGaussian() * scale
+                    this.world.getRandom().nextGaussian() * scale,
+                    this.world.getRandom().nextGaussian() * scale + 0.2F,
+                    this.world.getRandom().nextGaussian() * scale
             );
             this.world.addFreshEntity(item);
         }
@@ -267,7 +267,7 @@ public abstract class Connection {
                 this.prevStretchStage = stage;
             }
             if (dist > MAX_LENGTH + PULL_RANGE) {
-                this.world.playSound(null, point.x, point.y, point.z, FairyLightSounds.CORD_SNAP, SoundSource.BLOCKS, 0.75F, 0.8F + this.world.random.nextFloat() * 0.3F);
+                this.world.playSound(null, point.x, point.y, point.z, FairyLightSounds.CORD_SNAP, SoundSource.BLOCKS, 0.75F, 0.8F + this.world.getRandom().nextFloat() * 0.3F);
                 this.remove();
             } else if (dest.isMoving()) {
                 dest.resistSnap(from);

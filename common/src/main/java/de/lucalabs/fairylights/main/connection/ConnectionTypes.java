@@ -7,7 +7,7 @@ import de.lucalabs.fairylights.Constants;
 import de.lucalabs.fairylights.main.items.FairyLightItems;
 import de.lucalabs.fairylights.main.registries.FairyLightRegistries;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public final class ConnectionTypes {
 
@@ -31,7 +31,7 @@ public final class ConnectionTypes {
     }
 
     private static <T extends ConnectionType<?>> T register(final String name, Supplier<T> supplier) {
-        ResourceLocation identifier = Common.id(name);
+        Identifier identifier = Common.id(name);
         return Registry.register(FairyLightRegistries.CONNECTION_TYPES, identifier, supplier.get());
     }
 

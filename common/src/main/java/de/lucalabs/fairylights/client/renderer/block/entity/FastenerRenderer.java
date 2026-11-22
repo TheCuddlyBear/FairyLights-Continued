@@ -1,8 +1,10 @@
 package de.lucalabs.fairylights.client.renderer.block.entity;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.QuadInstance;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import de.lucalabs.fairylights.client.model.ModelLoader;
 import de.lucalabs.fairylights.client.model.light.BowModel;
 import de.lucalabs.fairylights.client.renderer.FairyLightModelLayers;
 import de.lucalabs.fairylights.client.renderer.RenderConstants;
@@ -12,36 +14,40 @@ import de.lucalabs.fairylights.main.fastener.FenceFastener;
 import de.lucalabs.fairylights.main.util.ColorUtils;
 import de.lucalabs.fairylights.main.util.Tags;
 import de.lucalabs.fairylights.platform.Services;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.cuboid.ItemTransform;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.sprite.SpriteGetter;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.RandomSource;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Unit;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
 
 public class FastenerRenderer {
+    private final SpriteGetter sprites;
     private final HangingLightsRenderer hangingLights;
     private final PennantBuntingRenderer pennants;
     private final GarlandVineRenderer garland;
     private final GarlandTinselRenderer tinsel;
     private final BowModel bow;
 
-    public FastenerRenderer(final Function<ModelLayerLocation, ModelPart> baker) {
-        this.hangingLights = new HangingLightsRenderer(baker);
-        this.pennants = new PennantBuntingRenderer(baker);
-        this.garland = new GarlandVineRenderer(baker);
-        this.tinsel = new GarlandTinselRenderer(baker);
+    public FastenerRenderer(final Function<ModelLayerLocation, ModelPart> baker, final SpriteGetter sprites) {
+        this.sprites = sprites;
+        this.hangingLights = new HangingLightsRenderer(baker, sprites);
+        this.pennants = new PennantBuntingRenderer(baker, sprites);
+        this.garland = new GarlandVineRenderer(baker, sprites);
+        this.tinsel = new GarlandTinselRenderer(baker, sprites);
         this.bow = new BowModel(baker.apply(FairyLightModelLayers.BOW));
     }
 
@@ -49,16 +55,16 @@ public class FastenerRenderer {
             final Fastener<?> fastener,
             final float delta,
             final PoseStack matrix,
-            final MultiBufferSource source,
+            final SubmitNodeCollector collector,
             final int packedLight,
             final int packedOverlay) {
 
         boolean renderBow = true;
         for (final Connection conn : fastener.getAllConnections()) {
             if (conn.getFastener() == fastener) {
-                this.renderConnection(delta, matrix, source, packedLight, packedOverlay, conn);
+                this.renderConnection(delta, matrix, collector, packedLight, packedOverlay, conn);
             }
-            if (renderBow && conn instanceof GarlandVineConnection && this.renderBow(fastener, matrix, source, packedLight, packedOverlay)) {
+            if (renderBow && conn instanceof GarlandVineConnection && this.renderBow(fastener, matrix, collector, packedLight, packedOverlay)) {
                 renderBow = false;
             }
         }
@@ -68,7 +74,7 @@ public class FastenerRenderer {
     private boolean renderBow(
             Fastener<?> fastener,
             PoseStack matrix,
-            MultiBufferSource source,
+            SubmitNodeCollector collector,
             int packedLight,
             int packedOverlay) {
 
@@ -81,7 +87,7 @@ public class FastenerRenderer {
             if (!state.is(Tags.FENCES)) {
                 return false;
             }
-            final VertexConsumer buf = RenderConstants.SOLID_TEXTURE.buffer(source, RenderType::entityCutout);
+            final TextureAtlasSprite sprite = this.sprites.get(RenderConstants.SOLID_TEXTURE);
             final float offset = -1.5F / 16.0F;
             final boolean north = state.getValue(FenceBlock.NORTH);
             final boolean east = state.getValue(FenceBlock.EAST);
@@ -90,67 +96,76 @@ public class FastenerRenderer {
             boolean tryDirX = true;
             boolean bow = false;
             if (!north && (east || west)) {
-                this.bow(matrix, Direction.NORTH, offset, buf, packedLight, packedOverlay);
+                this.bow(matrix, Direction.NORTH, offset, collector, sprite, packedLight, packedOverlay);
                 tryDirX = false;
                 bow = true;
             }
             if (!south && (east || west)) {
-                this.bow(matrix, Direction.SOUTH, offset, buf, packedLight, packedOverlay);
+                this.bow(matrix, Direction.SOUTH, offset, collector, sprite, packedLight, packedOverlay);
                 tryDirX = false;
                 bow = true;
             }
             if (tryDirX) {
                 if (!east && (north || south)) {
-                    this.bow(matrix, Direction.EAST, offset, buf, packedLight, packedOverlay);
+                    this.bow(matrix, Direction.EAST, offset, collector, sprite, packedLight, packedOverlay);
                     bow = true;
                 }
                 if (!west && (north || south)) {
-                    this.bow(matrix, Direction.WEST, offset, buf, packedLight, packedOverlay);
+                    this.bow(matrix, Direction.WEST, offset, collector, sprite, packedLight, packedOverlay);
                     bow = true;
                 }
             }
             return bow;
         } else if (fastener.getFacing().getAxis() != Direction.Axis.Y) {
-            final VertexConsumer buf = RenderConstants.SOLID_TEXTURE.buffer(source, RenderType::entityCutout);
-            this.bow(matrix, fastener.getFacing(), 0.0F, buf, packedLight, packedOverlay);
+            final TextureAtlasSprite sprite = this.sprites.get(RenderConstants.SOLID_TEXTURE);
+            this.bow(matrix, fastener.getFacing(), 0.0F, collector, sprite, packedLight, packedOverlay);
             return true;
         }
         return false;
     }
 
-    private void bow(PoseStack matrix, Direction dir, float offset, VertexConsumer buf, int packedLight, int packedOverlay) {
+    private void bow(PoseStack matrix, Direction dir, float offset, SubmitNodeCollector collector, TextureAtlasSprite sprite, int packedLight, int packedOverlay) {
         matrix.pushPose();
         matrix.mulPose(Axis.YP.rotationDegrees(180.0F - dir.toYRot()));
         if (offset != 0.0F) {
             matrix.translate(0.0D, 0.0D, offset);
         }
-        this.bow.renderToBuffer(matrix, buf, packedLight, packedOverlay, ColorUtils.WHITE);
+        collector.submitModel(
+                this.bow,
+                Unit.INSTANCE,
+                matrix,
+                RenderConstants.SOLID_TEXTURE.renderType(RenderTypes::entityCutout),
+                packedLight,
+                packedOverlay,
+                ColorUtils.WHITE,
+                sprite,
+                0,
+                null);
         matrix.popPose();
     }
 
-    private void renderConnection(final float delta, final PoseStack matrix, final MultiBufferSource source, final int packedLight, final int packedOverlay, final Connection conn) {
+    private void renderConnection(final float delta, final PoseStack matrix, final SubmitNodeCollector collector, final int packedLight, final int packedOverlay, final Connection conn) {
         if (conn instanceof HangingLightsConnection) {
-            this.hangingLights.render((HangingLightsConnection) conn, delta, matrix, source, packedLight, packedOverlay);
+            this.hangingLights.render((HangingLightsConnection) conn, delta, matrix, collector, packedLight, packedOverlay);
         } else if (conn instanceof PennantBuntingConnection) {
-            this.pennants.render((PennantBuntingConnection) conn, delta, matrix, source, packedLight, packedOverlay);
+            this.pennants.render((PennantBuntingConnection) conn, delta, matrix, collector, packedLight, packedOverlay);
         } else if (conn instanceof GarlandTinselConnection) {
-            this.tinsel.render((GarlandTinselConnection) conn, delta, matrix, source, packedLight, packedOverlay);
+            this.tinsel.render((GarlandTinselConnection) conn, delta, matrix, collector, packedLight, packedOverlay);
         } else if (conn instanceof GarlandVineConnection) {
-            this.garland.render((GarlandVineConnection) conn, delta, matrix, source, packedLight, packedOverlay);
+            this.garland.render((GarlandVineConnection) conn, delta, matrix, collector, packedLight, packedOverlay);
         }
     }
 
-    public static void renderBakedModel(final ResourceLocation path, final PoseStack matrix, final VertexConsumer buf, final float r, final float g, final float b, final int packedLight, final int packedOverlay) {
+    public static void renderBakedModel(final Identifier path, final PoseStack matrix, final VertexConsumer buf, final float r, final float g, final float b, final int packedLight, final int packedOverlay) {
         renderBakedModel(Services.MODELS.getModel(path), matrix, buf, r, g, b, packedLight, packedOverlay);
     }
 
-    public static void renderBakedModel(final BakedModel model, final PoseStack matrix, final VertexConsumer buf, final float r, final float g, final float b, final int packedLight, final int packedOverlay) {
+    public static void renderBakedModel(@Nullable final ModelLoader.BakedStandaloneModel model, final PoseStack matrix, final VertexConsumer buf, final float r, final float g, final float b, final int packedLight, final int packedOverlay) {
         renderBakedModel(model, ItemDisplayContext.FIXED, matrix, buf, r, g, b, packedLight, packedOverlay);
     }
 
-    // (refusing to use handlePerspective due to IForgeTransformationMatrix#push superfluous undocumented MatrixStack#push)
     public static void renderBakedModel(
-            final BakedModel model,
+            @Nullable final ModelLoader.BakedStandaloneModel model,
             final ItemDisplayContext type,
             final PoseStack matrix,
             final VertexConsumer buf,
@@ -159,22 +174,25 @@ public class FastenerRenderer {
             final float b,
             final int packedLight,
             final int packedOverlay) {
-
-        model.getTransforms().getTransform(type).apply(false, matrix);
-
-        PoseStack.Pose lastStack = matrix.last();
-
-        RandomSource randSource = RandomSource.create();
-        for (final Direction side : Direction.values()) {
-            randSource.setSeed(42L);
-            for (final BakedQuad quad : model.getQuads(null, side, randSource)) {
-                buf.putBulkData(lastStack, quad, r, g, b, 1.0F, packedLight, packedOverlay);
-            }
+        if (model == null) {
+            return;
         }
 
-        randSource.setSeed(42L);
-        for (final BakedQuad quad : model.getQuads(null, null, randSource)) {
-            buf.putBulkData(lastStack, quad, r, g, b, 1.0F, packedLight, packedOverlay);
+        final PoseStack.Pose lastStack = matrix.last();
+        final ItemTransform transform = model.transforms().getTransform(type);
+        if (transform != ItemTransform.NO_TRANSFORM) {
+            transform.apply(false, lastStack);
+            // ItemTransform.apply in 26.1 appends translate(-0.5, -0.5, -0.5) for item centering; undo it to preserve raw display transform semantics.
+            lastStack.translate(0.5F, 0.5F, 0.5F);
+        }
+
+        final QuadInstance quadInstance = new QuadInstance();
+        quadInstance.setColor(ARGB.colorFromFloat(1.0F, r, g, b));
+        quadInstance.setLightCoords(packedLight);
+        quadInstance.setOverlayCoords(packedOverlay);
+
+        for (final BakedQuad quad : model.quads().getAll()) {
+            buf.putBakedQuad(lastStack, quad, quadInstance);
         }
     }
 }

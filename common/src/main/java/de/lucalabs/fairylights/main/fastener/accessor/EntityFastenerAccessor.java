@@ -9,10 +9,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ServiceConfigurationError;
 import java.util.UUID;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.DoubleTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -98,7 +98,7 @@ public abstract class EntityFastenerAccessor<E extends Entity> implements Fasten
     @Override
     public CompoundTag serialize() {
         final CompoundTag tag = new CompoundTag();
-        tag.putUUID("UUID", this.uuid);
+        tag.storeNullable("UUID", UUIDUtil.CODEC, this.uuid);
         if (this.pos != null) {
             final ListTag pos = new ListTag();
             pos.add(DoubleTag.valueOf(this.pos.x));
@@ -111,13 +111,11 @@ public abstract class EntityFastenerAccessor<E extends Entity> implements Fasten
 
     @Override
     public void deserialize(final CompoundTag tag) {
-        this.uuid = tag.getUUID("UUID");
-        if (tag.contains("Pos", Tag.TAG_LIST)) {
-            final ListTag pos = tag.getList("Pos", Tag.TAG_DOUBLE);
-            this.pos = new Vec3(pos.getDouble(0), pos.getDouble(1), pos.getDouble(2));
-        } else {
-            this.pos = null;
-        }
+        this.uuid = tag.read("UUID", UUIDUtil.CODEC).orElse(null);
+        this.pos = tag.getList("Pos")
+                .filter(pos -> pos.size() >= 3)
+                .map(pos -> new Vec3(pos.getDoubleOr(0, 0.0), pos.getDoubleOr(1, 0.0), pos.getDoubleOr(2, 0.0)))
+                .orElse(null);
         this.entity = null;
     }
 }

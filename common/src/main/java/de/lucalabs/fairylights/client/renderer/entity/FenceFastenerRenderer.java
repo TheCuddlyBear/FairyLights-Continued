@@ -1,30 +1,49 @@
 package de.lucalabs.fairylights.client.renderer.entity;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import de.lucalabs.fairylights.Common;
 import de.lucalabs.fairylights.client.renderer.block.entity.FastenerRenderer;
 import de.lucalabs.fairylights.main.entity.FenceFastenerEntity;
+import de.lucalabs.fairylights.main.fastener.Fastener;
 import de.lucalabs.fairylights.platform.Services;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Sheets;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.LightLayer;
-import org.jetbrains.annotations.NotNull;
+import net.minecraft.world.phys.AABB;
+import org.jetbrains.annotations.Nullable;
 
-public final class FenceFastenerRenderer extends EntityRenderer<FenceFastenerEntity> {
-    public static final ResourceLocation MODEL = Common.id("block/fence_fastener");
+public final class FenceFastenerRenderer extends EntityRenderer<FenceFastenerEntity, FenceFastenerRenderer.FenceFastenerRenderState> {
+    public static final Identifier MODEL = Common.id("block/fence_fastener");
 
     private final FastenerRenderer renderer;
 
     public FenceFastenerRenderer(final EntityRendererProvider.Context context) {
         super(context);
-        this.renderer = new FastenerRenderer(context::bakeLayer);
+        this.renderer = new FastenerRenderer(context::bakeLayer, context.getSprites());
+    }
+
+    @Override
+    public FenceFastenerRenderState createRenderState() {
+        return new FenceFastenerRenderState();
+    }
+
+    @Override
+    public void extractRenderState(final FenceFastenerEntity entity, final FenceFastenerRenderState state, final float partialTicks) {
+        super.extractRenderState(entity, state, partialTicks);
+        state.fastener = Services.COMPONENTS.maybeGet(entity, Services.KEYS.FASTENER()).orElse(null);
+        state.partialTicks = partialTicks;
+    }
+
+    @Override
+    protected AABB getBoundingBoxForCulling(final FenceFastenerEntity entity) {
+        return entity.getBoundingBoxForCulling();
     }
 
     @Override
@@ -33,26 +52,26 @@ public final class FenceFastenerRenderer extends EntityRenderer<FenceFastenerEnt
     }
 
     @Override
-    public void render(
-            final FenceFastenerEntity entity,
-            final float yaw,
-            final float delta,
+    public void submit(
+            final FenceFastenerRenderState state,
             final PoseStack matrix,
-            final MultiBufferSource source,
-            final int packedLight) {
+            final SubmitNodeCollector submitNodeCollector,
+            final CameraRenderState camera) {
 
-        final VertexConsumer buf = source.getBuffer(Sheets.cutoutBlockSheet());
-        matrix.pushPose();
-        FastenerRenderer.renderBakedModel(MODEL, matrix, buf, 1.0F, 1.0F, 1.0F, packedLight, OverlayTexture.NO_OVERLAY);
-        matrix.popPose();
-        Services.COMPONENTS.maybeGet(entity, Services.KEYS.FASTENER()).ifPresent(
-                f -> this.renderer.render(f, delta, matrix, source, packedLight, OverlayTexture.NO_OVERLAY));
-        super.render(entity, yaw, delta, matrix, source, packedLight);
+        submitNodeCollector.submitCustomGeometry(matrix, Sheets.cutoutBlockSheet(), (pose, buf) -> {
+            final PoseStack local = new PoseStack();
+            local.last().set(pose);
+            FastenerRenderer.renderBakedModel(MODEL, local, buf, 1.0F, 1.0F, 1.0F, state.lightCoords, OverlayTexture.NO_OVERLAY);
+        });
+        if (state.fastener != null) {
+            this.renderer.render(state.fastener, state.partialTicks, matrix, submitNodeCollector, state.lightCoords, OverlayTexture.NO_OVERLAY);
+        }
+        super.submit(state, matrix, submitNodeCollector, camera);
     }
 
-    @SuppressWarnings("deprecation")
-    @Override
-    public @NotNull ResourceLocation getTextureLocation(final FenceFastenerEntity entity) {
-        return TextureAtlas.LOCATION_BLOCKS;
+    public static class FenceFastenerRenderState extends EntityRenderState {
+        @Nullable
+        public Fastener<?> fastener;
+        public float partialTicks;
     }
 }

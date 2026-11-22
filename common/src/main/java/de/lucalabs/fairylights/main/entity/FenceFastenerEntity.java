@@ -11,6 +11,7 @@ import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
@@ -26,6 +27,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public final class FenceFastenerEntity extends HangingEntity {
     private int surfaceCheckTime;
@@ -111,25 +113,30 @@ public final class FenceFastenerEntity extends HangingEntity {
         super.remove(reason);
     }
 
-    // Copy from super but remove() moved to after onBroken()
     @Override
-    public boolean hurt(final DamageSource source, final float amount) {
-        if (this.isInvulnerableTo(source)) {
+    public boolean hurtClient(final DamageSource source) {
+        return !this.isInvulnerableToBase(source);
+    }
+
+    // Copy from super but remove() moved to after dropItem()
+    @Override
+    public boolean hurtServer(final ServerLevel level, final DamageSource source, final float amount) {
+        if (this.isInvulnerableToBase(source)) {
             return false;
         }
-        if (!this.level().isClientSide() && this.isAlive()) {
+        if (this.isAlive()) {
             this.markHurt();
-            this.dropItem(source.getEntity());
+            this.dropItem(level, source.getEntity());
             this.remove(RemovalReason.KILLED);
         }
         return true;
     }
 
     @Override
-    public void dropItem(@Nullable final Entity breaker) {
-        this.getFastener().ifPresent(fastener -> fastener.dropItems(this.level(), this.pos));
+    public void dropItem(final ServerLevel level, @Nullable final Entity breaker) {
+        this.getFastener().ifPresent(fastener -> fastener.dropItems(level, this.pos));
         if (breaker != null) {
-            this.level().levelEvent(2001, this.pos, Block.getId(FairyLightBlocks.FASTENER.defaultBlockState()));
+            level.levelEvent(2001, this.pos, Block.getId(FairyLightBlocks.FASTENER.defaultBlockState()));
         }
     }
 
@@ -176,16 +183,15 @@ public final class FenceFastenerEntity extends HangingEntity {
         return new AABB(posX - w, posY - h, posZ - w, posX + w, posY + h, posZ + w);
     }
 
-    @Override
     public @NotNull AABB getBoundingBoxForCulling() {
-        return this.getFastener().map(fastener -> fastener.getBounds().inflate(1)).orElseGet(super::getBoundingBoxForCulling);
+        return this.getFastener().map(fastener -> fastener.getBounds().inflate(1)).orElseGet(this::getBoundingBox);
     }
 
     @Override
     public void tick() {
         this.getFastener().ifPresent(fastener -> {
-            if (!this.level().isClientSide() && (fastener.hasNoConnections() || this.checkSurface())) {
-                this.dropItem(null);
+            if (this.level() instanceof ServerLevel serverLevel && (fastener.hasNoConnections() || this.checkSurface())) {
+                this.dropItem(serverLevel, null);
                 this.remove(RemovalReason.DISCARDED);
             } else if (fastener.update() && !this.level().isClientSide()) {
                 // TODO probably not needed because of auto syncing
@@ -206,7 +212,7 @@ public final class FenceFastenerEntity extends HangingEntity {
     }
 
     @Override
-    public @NotNull InteractionResult interact(final Player player, final @NotNull InteractionHand hand) {
+    public @NotNull InteractionResult interact(final Player player, final @NotNull InteractionHand hand, final Vec3 location) {
         final ItemStack stack = player.getItemInHand(hand);
         if (stack.getItem() instanceof ConnectionItem) {
             if (this.level().isClientSide()) {
@@ -216,7 +222,7 @@ public final class FenceFastenerEntity extends HangingEntity {
             }
             return InteractionResult.SUCCESS;
         }
-        return super.interact(player, hand);
+        return super.interact(player, hand, location);
     }
 
     // TODO seems to be implemented in superclass now, verify that everything still works as desired.

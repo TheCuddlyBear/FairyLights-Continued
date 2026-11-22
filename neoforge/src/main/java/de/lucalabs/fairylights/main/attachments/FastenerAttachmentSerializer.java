@@ -1,8 +1,9 @@
 package de.lucalabs.fairylights.main.attachments;
 
 import de.lucalabs.fairylights.main.fastener.Fastener;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.attachment.IAttachmentHolder;
 import net.neoforged.neoforge.attachment.IAttachmentSerializer;
 import org.jetbrains.annotations.Nullable;
@@ -12,10 +13,12 @@ import org.jetbrains.annotations.Nullable;
  * correct Fastener subtype for the holder (block entity / fence / player) before reading the NBT,
  * mirroring the per-holder factories the Fabric build registers through Cardinal Components.
  */
-public class FastenerAttachmentSerializer implements IAttachmentSerializer<CompoundTag, Fastener<?>> {
+public class FastenerAttachmentSerializer implements IAttachmentSerializer<Fastener<?>> {
+
+    private static final String FASTENER_KEY = "fastener";
 
     @Override
-    public @Nullable Fastener<?> read(final IAttachmentHolder holder, final CompoundTag tag, final HolderLookup.Provider provider) {
+    public @Nullable Fastener<?> read(final IAttachmentHolder holder, final ValueInput input) {
         // Reuse the existing fastener if one is already attached (NeoForge has not overwritten it yet
         // at this point). AbstractFastener#readFromNbt updates connections that already exist in place,
         // preserving their computed catenary; allocating a fresh fastener on every sync instead drops
@@ -26,15 +29,17 @@ public class FastenerAttachmentSerializer implements IAttachmentSerializer<Compo
             fastener = FairyLightsAttachments.createFor(holder);
         }
         if (fastener != null) {
-            fastener.readFromNbt(tag);
+            final Fastener<?> target = fastener;
+            input.read(FASTENER_KEY, CompoundTag.CODEC).ifPresent(target::readFromNbt);
         }
         return fastener;
     }
 
     @Override
-    public CompoundTag write(final Fastener<?> attachment, final HolderLookup.Provider provider) {
+    public boolean write(final Fastener<?> attachment, final ValueOutput output) {
         final CompoundTag tag = new CompoundTag();
         attachment.writeToNbt(tag);
-        return tag;
+        output.store(FASTENER_KEY, CompoundTag.CODEC, tag);
+        return true;
     }
 }

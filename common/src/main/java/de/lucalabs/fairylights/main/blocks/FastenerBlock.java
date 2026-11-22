@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -126,25 +127,6 @@ public final class FastenerBlock extends DirectionalBlock implements EntityBlock
     }
 
     @Override
-    public void onRemove(
-            final BlockState state,
-            final @NotNull Level world,
-            final @NotNull BlockPos pos,
-            final BlockState newState,
-            final boolean isMoving) {
-        if (!state.is(newState.getBlock())) {
-            final BlockEntity entity = world.getBlockEntity(pos);
-            if (entity instanceof FastenerBlockEntity) {
-                Services.COMPONENTS.maybeGet(entity, Services.KEYS.FASTENER()).ifPresent(f -> {
-                    f.remove();
-                    f.dropItems(world, pos);
-                });
-            }
-            super.onRemove(state, world, pos, newState, isMoving);
-        }
-    }
-
-    @Override
     public boolean canSurvive(final BlockState state, final LevelReader world, final BlockPos pos) {
         final Direction facing = state.getValue(FACING);
         final BlockPos attachedPos = pos.relative(facing.getOpposite());
@@ -170,12 +152,12 @@ public final class FastenerBlock extends DirectionalBlock implements EntityBlock
     }
 
     @Override
-    public void neighborChanged(
+    protected void neighborChanged(
             final BlockState state,
             final @NotNull Level world,
             final @NotNull BlockPos pos,
             final @NotNull Block blockIn,
-            final @NotNull BlockPos fromPos,
+            final @Nullable Orientation orientation,
             final boolean isMoving) {
         if (state.canSurvive(world, pos)) {
             final boolean receivingPower = world.hasNeighborSignal(pos);

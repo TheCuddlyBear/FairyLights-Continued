@@ -57,6 +57,17 @@ public final class FastenerBlockEntity extends BlockEntity {
         this.getFastener().ifPresent(fastener -> fastener.setWorld(world));
     }
 
+    @Override
+    public void preRemoveSideEffects(final BlockPos pos, final BlockState state) {
+        super.preRemoveSideEffects(pos, state);
+        if (this.level != null) {
+            this.getFastener().ifPresent(f -> {
+                f.remove();
+                f.dropItems(this.level, pos);
+            });
+        }
+    }
+
     private Optional<Fastener<?>> getFastener() {
         return Services.COMPONENTS.maybeGet(this, Services.KEYS.FASTENER());
     }

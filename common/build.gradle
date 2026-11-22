@@ -51,6 +51,10 @@ dependencies {
     compileOnly("mezz.jei:jei-${project.minecraft_version}-common-api:${jei_version}")
 }
 
+if (!project.enable_emi.toBoolean()) {
+    sourceSets.main.java.exclude('**/integrations/emi/**')
+}
+
 configurations {
     commonJava {
         canBeResolved = false

@@ -1,8 +1,8 @@
 package de.lucalabs.fairylights.main.feature.light;
 
 import java.util.List;
-import net.minecraft.Util;
 import net.minecraft.util.Mth;
+import net.minecraft.util.Util;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;

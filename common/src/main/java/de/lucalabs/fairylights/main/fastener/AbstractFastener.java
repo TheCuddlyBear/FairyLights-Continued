@@ -10,13 +10,15 @@ import de.lucalabs.fairylights.main.util.BoxBuilder;
 import de.lucalabs.fairylights.main.util.Constants;
 import de.lucalabs.fairylights.main.util.Curve;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -147,16 +149,16 @@ public abstract class AbstractFastener<F extends FastenerAccessor> implements Fa
 
     private void drop(final Level world, final BlockPos pos, final Connection connection) {
         if (!connection.shouldDrop()) return;
-        final float offsetX = world.random.nextFloat() * 0.8F + 0.1F;
-        final float offsetY = world.random.nextFloat() * 0.8F + 0.1F;
-        final float offsetZ = world.random.nextFloat() * 0.8F + 0.1F;
+        final float offsetX = world.getRandom().nextFloat() * 0.8F + 0.1F;
+        final float offsetY = world.getRandom().nextFloat() * 0.8F + 0.1F;
+        final float offsetZ = world.getRandom().nextFloat() * 0.8F + 0.1F;
         final ItemStack stack = connection.getItemStack();
         final ItemEntity entityItem = new ItemEntity(world, pos.getX() + offsetX, pos.getY() + offsetY, pos.getZ() + offsetZ, stack);
         final float scale = 0.05F;
         entityItem.setDeltaMovement(
-                world.random.nextGaussian() * scale,
-                world.random.nextGaussian() * scale + 0.2F,
-                world.random.nextGaussian() * scale
+                world.getRandom().nextGaussian() * scale,
+                world.getRandom().nextGaussian() * scale + 0.2F,
+                world.getRandom().nextGaussian() * scale
         );
         world.addFreshEntity(entityItem);
         connection.noDrop();
@@ -228,7 +230,7 @@ public abstract class AbstractFastener<F extends FastenerAccessor> implements Fa
 
     @Override
     public Connection connect(final Level world, final Fastener<?> destination, final ConnectionType<?> type, final ComponentRecords.ConnectionLogic logic, final boolean drop) {
-        final UUID uuid = Mth.createInsecureUUID();
+        final UUID uuid = Mth.createInsecureUUID(world.getRandom());
         final Connection connection = this.createOutgoingConnection(world, uuid, destination, type, logic, drop);
         destination.createIncomingConnection(world, uuid, this, type);
         return connection;
@@ -262,9 +264,9 @@ public abstract class AbstractFastener<F extends FastenerAccessor> implements Fa
                     .getOrThrow();
 
             connectionCompound.put("connection", connectionNbt);
-            Optional<ResourceLocation> connectionTypeId = FairyLightRegistries.CONNECTION_TYPES
+            Optional<Identifier> connectionTypeId = FairyLightRegistries.CONNECTION_TYPES
                     .getResourceKey(connection.getType())
-                    .map(ResourceKey::location);
+                    .map(ResourceKey::identifier);
 
             if (connectionTypeId.isPresent()) {
                 connectionCompound.putString("type", connectionTypeId.get().toString());
@@ -272,14 +274,14 @@ public abstract class AbstractFastener<F extends FastenerAccessor> implements Fa
                 continue;
             }
 
-            connectionCompound.putUUID("uuid", uuid);
+            connectionCompound.store("uuid", UUIDUtil.CODEC, uuid);
             outgoing.add(connectionCompound);
         }
         compound.put("outgoing", outgoing);
         final ListTag incoming = new ListTag();
         for (final Map.Entry<UUID, Incoming> e : this.incoming.entrySet()) {
             final CompoundTag tag = new CompoundTag();
-            tag.putUUID("uuid", e.getKey());
+            tag.store("uuid", UUIDUtil.CODEC, e.getKey());
 
             Tag fastenerNbt = ComponentRecords.FastenerAccessorData.CODEC
                     .encodeStart(NbtOps.INSTANCE, ComponentRecords.FastenerAccessorData.from(e.getValue().fastener()))
@@ -293,34 +295,32 @@ public abstract class AbstractFastener<F extends FastenerAccessor> implements Fa
 
     @Override
     public void readFromNbt(final CompoundTag compound) {
-        final ListTag listConnections = compound.getList("outgoing", Tag.TAG_COMPOUND);
+        final ListTag listConnections = compound.getListOrEmpty("outgoing");
         final List<UUID> nbtUuids = new ArrayList<>();
         for (int i = 0; i < listConnections.size(); i++) {
-            final CompoundTag connectionCompound = listConnections.getCompound(i);
-            final UUID uuid;
-            if (connectionCompound.hasUUID("uuid")) {
-                uuid = connectionCompound.getUUID("uuid");
-            } else {
-                uuid = Mth.createInsecureUUID();
-            }
+            final CompoundTag connectionCompound = listConnections.getCompoundOrEmpty(i);
+            final UUID uuid = connectionCompound.read("uuid", UUIDUtil.CODEC)
+                    .orElseGet(() -> Mth.createInsecureUUID(this.world != null ? this.world.getRandom() : RandomSource.create()));
             nbtUuids.add(uuid);
             if (this.outgoing.containsKey(uuid)) {
                 final Connection connection = this.outgoing.get(uuid);
 
                 var status = ComponentRecords.ConnectionStatus.CODEC
-                        .parse(NbtOps.INSTANCE, connectionCompound.getCompound("connection"))
+                        .parse(NbtOps.INSTANCE, connectionCompound.getCompoundOrEmpty("connection"))
                         .getOrThrow();
 
                 connection.deserialize(status);
             } else {
-                final ConnectionType<?> type = FairyLightRegistries.CONNECTION_TYPES
-                        .get(ResourceLocation.tryParse(connectionCompound.getString("type")));
+                final Identifier typeId = Identifier.tryParse(connectionCompound.getStringOr("type", ""));
+                final ConnectionType<?> type = typeId != null
+                        ? FairyLightRegistries.CONNECTION_TYPES.getValue(typeId)
+                        : null;
 
                 if (type != null) {
                     final Connection connection = type.create(this.world, this, uuid);
 
                     var status = ComponentRecords.ConnectionStatus.CODEC
-                            .parse(NbtOps.INSTANCE, connectionCompound.getCompound("connection"))
+                            .parse(NbtOps.INSTANCE, connectionCompound.getCompoundOrEmpty("connection"))
                             .getOrThrow();
 
                     connection.deserialize(status);
@@ -337,13 +337,17 @@ public abstract class AbstractFastener<F extends FastenerAccessor> implements Fa
             }
         }
         this.incoming.clear();
-        final ListTag incoming = compound.getList("incoming", Tag.TAG_COMPOUND);
+        final ListTag incoming = compound.getListOrEmpty("incoming");
         for (int i = 0; i < incoming.size(); i++) {
-            final CompoundTag incomingNbt = incoming.getCompound(i);
-            final UUID uuid = incomingNbt.getUUID("uuid");
+            final CompoundTag incomingNbt = incoming.getCompoundOrEmpty(i);
+            final Optional<UUID> uuidOpt = incomingNbt.read("uuid", UUIDUtil.CODEC);
+            if (uuidOpt.isEmpty()) {
+                continue;
+            }
+            final UUID uuid = uuidOpt.get();
 
             final FastenerAccessor fastener = ComponentRecords.FastenerAccessorData.CODEC
-                    .parse(NbtOps.INSTANCE, incomingNbt.getCompound("fastener"))
+                    .parse(NbtOps.INSTANCE, incomingNbt.getCompoundOrEmpty("fastener"))
                     .getOrThrow()
                     .accessor();
 

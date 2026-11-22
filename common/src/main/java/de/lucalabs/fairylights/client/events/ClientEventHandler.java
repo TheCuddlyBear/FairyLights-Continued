@@ -17,11 +17,12 @@ import de.lucalabs.fairylights.main.util.Curve;
 import de.lucalabs.fairylights.platform.Services;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.client.renderer.ShapeRenderer;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -34,9 +35,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.ChunkSource;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
@@ -45,6 +49,8 @@ import java.util.ConcurrentModificationException;
 import java.util.Set;
 
 public final class ClientEventHandler {
+    private static final int HIGHLIGHT_COLOR = ARGB.colorFromFloat(RenderConstants.HIGHLIGHT_ALPHA, 0.0F, 0.0F, 0.0F);
+
     private ClientEventHandler() {
     }
 
@@ -55,34 +61,37 @@ public final class ClientEventHandler {
             final PoseStack matrix,
             final MultiBufferSource buf) {
 
-        Vec3 pos = camera.getPosition();
+        Vec3 pos = camera.position();
+        float lineWidth = Minecraft.getInstance().getWindow().getAppropriateLineWidth();
 
         if (entity instanceof FenceFastenerEntity) {
             drawFenceFastenerHighlight(
                     (FenceFastenerEntity) entity,
                     matrix,
-                    buf.getBuffer(RenderType.lines()),
+                    buf.getBuffer(RenderTypes.lines()),
                     tickDelta,
                     pos.x,
                     pos.y,
-                    pos.z);
+                    pos.z,
+                    lineWidth);
         } else if (entity instanceof final HitConnection hit) {
             if (hit.result.intersection.featureType() == Connection.CORD_FEATURE) {
                 matrix.pushPose();
                 final Vec3 p = hit.result.connection.getFastener().getConnectionPoint();
                 matrix.translate(p.x - pos.x, p.y - pos.y, p.z - pos.z);
-                renderHighlight(hit.result.connection, matrix, buf.getBuffer(RenderType.lines()));
+                renderHighlight(hit.result.connection, matrix, buf.getBuffer(RenderTypes.lines()), lineWidth);
                 matrix.popPose();
             } else {
                 final AABB bb = hit.result.intersection.hitBox().move(-pos.x, -pos.y, -pos.z).inflate(0.002D);
-                LevelRenderer.renderLineBox(
+                ShapeRenderer.renderShape(
                         matrix,
-                        buf.getBuffer(RenderType.lines()),
-                        bb,
-                        0.0F,
-                        0.0F,
-                        0.0F,
-                        RenderConstants.HIGHLIGHT_ALPHA);
+                        buf.getBuffer(RenderTypes.lines()),
+                        Shapes.create(bb),
+                        0.0D,
+                        0.0D,
+                        0.0D,
+                        HIGHLIGHT_COLOR,
+                        lineWidth);
             }
         }
     }
@@ -94,18 +103,19 @@ public final class ClientEventHandler {
             final float delta,
             final double dx,
             final double dy,
-            final double dz) {
+            final double dz,
+            final float lineWidth) {
 
 
         final Player player = Minecraft.getInstance().player;
         // Check if the server will allow interaction
         if (player != null && (player.hasLineOfSight(fence) || player.distanceToSqr(fence) <= 9.0D)) {
             final AABB selection = fence.getBoundingBox().move(-dx, -dy, -dz).inflate(0.002D);
-            LevelRenderer.renderLineBox(matrix, buf, selection, 0.0F, 0.0F, 0.0F, RenderConstants.HIGHLIGHT_ALPHA);
+            ShapeRenderer.renderShape(matrix, buf, Shapes.create(selection), 0.0D, 0.0D, 0.0D, HIGHLIGHT_COLOR, lineWidth);
         }
     }
 
-    private static void renderHighlight(final Connection connection, final PoseStack matrix, final VertexConsumer buf) {
+    private static void renderHighlight(final Connection connection, final PoseStack matrix, final VertexConsumer buf, final float lineWidth) {
         final Curve cat = connection.getCatenary();
         if (cat == null) {
             return;
@@ -113,7 +123,7 @@ public final class ClientEventHandler {
         final Vector3f p = new Vector3f();
         final Vector3f v1 = new Vector3f();
         final Vector3f v2 = new Vector3f();
-        final LineBuilder builder = new LineBuilder(matrix, buf);
+        final LineBuilder builder = new LineBuilder(matrix, buf, lineWidth);
         final float r = connection.getRadius() + 0.01F;
         for (int edge = 0; edge < 4; edge++) {
             p.set(cat.getX(0), cat.getY(0), cat.getZ(0));
@@ -278,11 +288,13 @@ public final class ClientEventHandler {
     static class LineBuilder {
         final PoseStack matrix;
         final VertexConsumer buf;
+        final float lineWidth;
         Vector3f last;
 
-        LineBuilder(PoseStack matrix, VertexConsumer buf) {
+        LineBuilder(PoseStack matrix, VertexConsumer buf, float lineWidth) {
             this.matrix = matrix;
             this.buf = buf;
+            this.lineWidth = lineWidth;
         }
 
         void accept(Vector3f pos) {
@@ -293,15 +305,14 @@ public final class ClientEventHandler {
                 n.sub(this.last);
                 n.normalize();
                 n = this.matrix.last().normal().transform(n);
-                // TODO verify that I can just remove the next calls here
                 this.buf.addVertex(this.matrix.last().pose(), this.last.x(), this.last.y(), this.last.z())
                         .setColor(0.0F, 0.0F, 0.0F, RenderConstants.HIGHLIGHT_ALPHA)
-                        .setNormal(n.x(), n.y(), n.z());
-//                        .next();
+                        .setNormal(n.x(), n.y(), n.z())
+                        .setLineWidth(this.lineWidth);
                 this.buf.addVertex(this.matrix.last().pose(), pos.x(), pos.y(), pos.z())
                         .setColor(0.0F, 0.0F, 0.0F, RenderConstants.HIGHLIGHT_ALPHA)
-                        .setNormal(n.x(), n.y(), n.z());
-//                        .next();
+                        .setNormal(n.x(), n.y(), n.z())
+                        .setLineWidth(this.lineWidth);
                 this.last = null;
             }
         }
@@ -318,7 +329,7 @@ public final class ClientEventHandler {
         }
 
         @Override
-        public boolean hurt(final DamageSource source, final float amount) {
+        public boolean hurtClient(final DamageSource source) {
             if (source.getEntity() == Minecraft.getInstance().player) {
                 this.processAction(PlayerAction.ATTACK);
                 return true;
@@ -327,12 +338,17 @@ public final class ClientEventHandler {
         }
 
         @Override
-        public @NotNull InteractionResult interact(final @NotNull Player player, final @NotNull InteractionHand hand) {
+        public boolean hurtServer(final ServerLevel level, final DamageSource source, final float amount) {
+            return false;
+        }
+
+        @Override
+        public @NotNull InteractionResult interact(final @NotNull Player player, final @NotNull InteractionHand hand, final @NotNull Vec3 location) {
             if (player == Minecraft.getInstance().player) {
                 this.processAction(PlayerAction.INTERACT);
                 return InteractionResult.SUCCESS;
             }
-            return super.interact(player, hand);
+            return super.interact(player, hand, location);
         }
 
         private void processAction(final PlayerAction action) {
@@ -340,12 +356,6 @@ public final class ClientEventHandler {
                     new InteractionConnectionMessagePayload(this.result.connection, action, this.result.intersection));
         }
 
-//        @Override
-//        public ItemStack getPickedResult(net.minecraft.util.hit.HitResult target) {
-//            return this.result.connection.getItemStack();
-//        }
-
-        // TODO check if that does the same as the method above
         @Override
         public ItemStack getPickResult() {
             return this.result.connection.getItemStack();
@@ -356,11 +366,11 @@ public final class ClientEventHandler {
         }
 
         @Override
-        protected void addAdditionalSaveData(final CompoundTag compound) {
+        protected void addAdditionalSaveData(final ValueOutput output) {
         }
 
         @Override
-        protected void readAdditionalSaveData(final CompoundTag compound) {
+        protected void readAdditionalSaveData(final ValueInput input) {
         }
     }
 

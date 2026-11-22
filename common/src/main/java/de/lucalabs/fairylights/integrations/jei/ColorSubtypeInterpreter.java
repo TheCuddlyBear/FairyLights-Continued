@@ -12,12 +12,4 @@ public final class ColorSubtypeInterpreter implements ISubtypeInterpreter<ItemSt
     public @Nullable Object getSubtypeData(ItemStack stack, @NotNull UidContext context) {
         return stack.get(FairyLightItemComponents.COLOR);
     }
-
-    @Override
-    public @NotNull String getLegacyStringSubtypeInfo(@NotNull ItemStack stack, @NotNull UidContext context) {
-        if (stack.has(FairyLightItemComponents.COLOR)) {
-            return String.format("%06x", stack.get(FairyLightItemComponents.COLOR));
-        }
-        return "";
-    }
 }

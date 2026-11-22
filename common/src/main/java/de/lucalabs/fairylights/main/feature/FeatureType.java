@@ -5,8 +5,8 @@ import de.lucalabs.fairylights.Common;
 import net.minecraft.core.DefaultedMappedRegistry;
 import net.minecraft.core.DefaultedRegistry;
 import net.minecraft.core.Registry;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 
 public final class FeatureType {
     private static final DefaultedRegistry<FeatureType> REGISTRY = new DefaultedMappedRegistry<>(
@@ -25,7 +25,7 @@ public final class FeatureType {
     }
 
     public static FeatureType register(final String name) {
-        return Registry.register(REGISTRY, ResourceLocation.parse(name), new FeatureType());
+        return Registry.register(REGISTRY, Identifier.parse(name), new FeatureType());
     }
 
     public static FeatureType fromId(final int id) {

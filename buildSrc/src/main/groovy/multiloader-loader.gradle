@@ -24,6 +24,9 @@ dependencies {
 tasks.named('compileJava', JavaCompile) {
     dependsOn(configurations.commonJava)
     source(configurations.commonJava)
+    if (!project.enable_emi.toBoolean()) {
+        exclude('**/integrations/emi/**')
+    }
 }
 
 processResources {
@@ -34,6 +37,9 @@ processResources {
 tasks.named('javadoc', Javadoc).configure {
     dependsOn(configurations.commonJava)
     source(configurations.commonJava)
+    if (!project.enable_emi.toBoolean()) {
+        exclude('**/integrations/emi/**')
+    }
 }
 
 tasks.named('sourcesJar', Jar) {
@@ -41,4 +47,7 @@ tasks.named('sourcesJar', Jar) {
     from(configurations.commonJava)
     dependsOn(configurations.commonResources)
     from(configurations.commonResources)
+    if (!project.enable_emi.toBoolean()) {
+        exclude('**/integrations/emi/**')
+    }
 }

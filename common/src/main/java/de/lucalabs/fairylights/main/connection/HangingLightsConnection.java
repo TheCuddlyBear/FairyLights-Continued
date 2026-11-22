@@ -120,7 +120,7 @@ public final class HangingLightsConnection extends HangingFeatureConnection<Ligh
             if (this.lightUpdateTime > LIGHT_UPDATE_WAIT && this.lightUpdateTime % LIGHT_UPDATE_RATE == 0) {
                 if (this.lightUpdateIndex >= this.features.length) {
                     this.lightUpdateIndex = 0;
-                    this.lightUpdateTime = this.world.random.nextInt(LIGHT_UPDATE_WAIT / 2);
+                    this.lightUpdateTime = this.world.getRandom().nextInt(LIGHT_UPDATE_WAIT / 2);
                 } else {
                     this.setLight(BlockPos.containing(this.features[this.lightUpdateIndex++].getAbsolutePoint(this.fastener)));
                 }

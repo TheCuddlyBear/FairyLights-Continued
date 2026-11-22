@@ -197,7 +197,7 @@ public final class GenericRecipeWrapper  {
                     inputs.stream().map(x -> x.isEmpty() ? ItemStack.EMPTY : x.get(N % x.size())).toList());
 
             if (this.recipe.matches(input, null)) {
-                outputs.add(this.recipe.assemble(input, null));
+                outputs.add(this.recipe.assemble(input));
             }
         }
 
@@ -221,7 +221,7 @@ public final class GenericRecipeWrapper  {
                             .map(x -> x.isEmpty() ? ItemStack.EMPTY : x.getFirst()).toList());
 
             if (this.recipe.matches(input, null)) {
-                outputConsumer.accept(ItemStack.EMPTY, this.recipe.assemble(input, null));
+                outputConsumer.accept(ItemStack.EMPTY, this.recipe.assemble(input));
             }
         } else {
             final List<ItemStack> dictators = this.minimalInputStacks.get(this.subtypeIndex);
@@ -241,7 +241,7 @@ public final class GenericRecipeWrapper  {
                 CraftingInput input = CraftingInput.of(this.width, this.height, inputs);
 
                 if (this.recipe.matches(input, null)) {
-                    outputConsumer.accept(subtype, this.recipe.assemble(input, null));
+                    outputConsumer.accept(subtype, this.recipe.assemble(input));
                 }
             }
         }

@@ -9,15 +9,18 @@ import de.lucalabs.fairylights.client.renderer.RenderConstants;
 import de.lucalabs.fairylights.main.util.Curve;
 import de.lucalabs.fairylights.main.util.MathHelper;
 import de.lucalabs.fairylights.main.util.RandomArray;
-import net.minecraft.client.model.*;
+import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.sprite.SpriteGetter;
+
 import java.util.function.Function;
 
 public class GarlandVineRenderer extends ConnectionRenderer<GarlandVineConnection> {
@@ -26,8 +29,8 @@ public class GarlandVineRenderer extends ConnectionRenderer<GarlandVineConnectio
 
     private final RingsModel rings;
 
-    protected GarlandVineRenderer(final Function<ModelLayerLocation, ModelPart> baker) {
-        super(baker, FairyLightModelLayers.VINE_WIRE);
+    protected GarlandVineRenderer(final Function<ModelLayerLocation, ModelPart> baker, final SpriteGetter sprites) {
+        super(baker, sprites, FairyLightModelLayers.VINE_WIRE);
         this.rings = new RingsModel(baker.apply(FairyLightModelLayers.GARLAND_RINGS));
     }
 
@@ -37,35 +40,41 @@ public class GarlandVineRenderer extends ConnectionRenderer<GarlandVineConnectio
             final Curve catenary,
             final float delta,
             final PoseStack matrix,
-            final MultiBufferSource source,
+            final SubmitNodeCollector collector,
             final int packedLight,
             final int packedOverlay) {
-        super.render(conn, catenary, delta, matrix, source, packedLight, packedOverlay);
+        super.render(conn, catenary, delta, matrix, collector, packedLight, packedOverlay);
         final int hash = conn.getUUID().hashCode();
-        final VertexConsumer buf = RenderConstants.SOLID_TEXTURE.buffer(source, RenderType::entityCutout);
-        catenary.visitPoints(0.25F, false, (index, x, y, z, yaw, pitch) -> {
-            matrix.pushPose();
-            matrix.translate(x, y, z);
-            matrix.mulPose(Axis.YP.rotation(-yaw));
-            matrix.mulPose(Axis.ZP.rotation(pitch));
-            matrix.mulPose(Axis.ZP.rotationDegrees(RAND.get(index + hash) * 45.0F));
-            matrix.mulPose(Axis.YP.rotationDegrees(RAND.get(index + 8 + hash) * 60.F + 90.0F));
-            this.rings.setWhich(index % RING_COUNT);
-            this.rings.renderToBuffer(matrix, buf, packedLight, packedOverlay, 0xFFFFFFFF);
-            matrix.popPose();
-        });
+        final TextureAtlasSprite sprite = this.sprites.get(RenderConstants.SOLID_TEXTURE);
+        collector.submitCustomGeometry(
+                matrix,
+                RenderConstants.SOLID_TEXTURE.renderType(RenderTypes::entityCutout),
+                (pose, consumer) -> {
+                    final VertexConsumer buf = sprite.wrap(consumer);
+                    final PoseStack local = new PoseStack();
+                    local.last().set(pose);
+                    catenary.visitPoints(0.25F, false, (index, x, y, z, yaw, pitch) -> {
+                        local.pushPose();
+                        local.translate(x, y, z);
+                        local.mulPose(Axis.YP.rotation(-yaw));
+                        local.mulPose(Axis.ZP.rotation(pitch));
+                        local.mulPose(Axis.ZP.rotationDegrees(RAND.get(index + hash) * 45.0F));
+                        local.mulPose(Axis.YP.rotationDegrees(RAND.get(index + 8 + hash) * 60.F + 90.0F));
+                        this.rings.renderRing(index % RING_COUNT, local, buf, packedLight, packedOverlay, 0xFFFFFFFF);
+                        local.popPose();
+                    });
+                });
     }
 
     public static LayerDefinition wireLayer() {
         return WireModel.createLayer(39, 0, 1);
     }
 
-    public static class RingsModel extends Model {
+    public static class RingsModel extends Model.Simple {
         final ModelPart[] roots;
-        int which;
 
         RingsModel(final ModelPart root) {
-            super(RenderType::entityCutout);
+            super(root, RenderTypes::entityCutout);
             ModelPart[] roots = new ModelPart[RING_COUNT];
             for (int i = 0; i < RING_COUNT; i++) {
                 roots[i] = root.getChild(Integer.toString(i));
@@ -90,13 +99,8 @@ public class GarlandVineRenderer extends ConnectionRenderer<GarlandVineConnectio
             return LayerDefinition.create(mesh, 128, 128);
         }
 
-        public void setWhich(int which) {
-            this.which = which;
-        }
-
-        @Override
-        public void renderToBuffer(final PoseStack matrix, final VertexConsumer builder, final int light, final int overlay, int color) {
-            this.roots[this.which].render(matrix, builder, light, overlay, color);
+        public void renderRing(final int which, final PoseStack matrix, final VertexConsumer builder, final int light, final int overlay, final int color) {
+            this.roots[which].render(matrix, builder, light, overlay, color);
         }
     }
 }

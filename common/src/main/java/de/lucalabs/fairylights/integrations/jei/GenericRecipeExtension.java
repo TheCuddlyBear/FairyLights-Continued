@@ -10,11 +10,11 @@ import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.category.extensions.vanilla.crafting.ICraftingCategoryExtension;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -22,6 +22,26 @@ public class GenericRecipeExtension implements ICraftingCategoryExtension<Generi
 
     private final int width = 3;
     private final int height = 3;
+
+    @Override
+    public @NotNull List<SlotDisplay> getIngredients(@NotNull RecipeHolder<GenericRecipe> recipeHolder) {
+        GenericRecipeWrapper recipe = new GenericRecipeWrapper(recipeHolder.value());
+        return recipe.getAllInputs().stream()
+                .map(stacks -> {
+                    List<SlotDisplay> displays = stacks.stream()
+                            .filter(s -> !s.isEmpty())
+                            .map(s -> (SlotDisplay) new SlotDisplay.ItemStackSlotDisplay(ItemStackTemplate.fromNonEmptyStack(s)))
+                            .toList();
+                    if (displays.isEmpty()) {
+                        return (SlotDisplay) SlotDisplay.Empty.INSTANCE;
+                    }
+                    if (displays.size() == 1) {
+                        return displays.getFirst();
+                    }
+                    return (SlotDisplay) new SlotDisplay.Composite(displays);
+                })
+                .toList();
+    }
 
     @Override
     public void setRecipe(@NotNull RecipeHolder<GenericRecipe> recipeHolder, @NotNull IRecipeLayoutBuilder builder, @NotNull ICraftingGridHelper craftingGridHelper, IFocusGroup focuses) {

@@ -1,11 +1,11 @@
 package de.lucalabs.fairylights.main.components;
 
 import org.jetbrains.annotations.Nullable;
-import org.ladysnake.cca.api.v3.component.Component;
+import org.ladysnake.cca.api.v8.component.CardinalComponent;
 
 import java.util.Optional;
 
-public abstract class GenericComponent<T> implements Component {
+public abstract class GenericComponent<T> implements CardinalComponent {
 
     @Nullable
     protected T delegate;

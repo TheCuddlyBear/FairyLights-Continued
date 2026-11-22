@@ -18,6 +18,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.AttachFace;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -97,16 +99,16 @@ public class LightBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag compound, HolderLookup.Provider wrapper) {
-        super.saveAdditional(compound, wrapper);
-        compound.put("item", this.light.getItem().save(wrapper));
-        compound.putBoolean("on", this.on);
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
+        output.store("item", ItemStack.OPTIONAL_CODEC, this.light.getItem());
+        output.putBoolean("on", this.on);
     }
 
     @Override
-    public void loadAdditional(CompoundTag compound, HolderLookup.Provider wrapper) {
-        super.loadAdditional(compound, wrapper);
-        ItemStack.parse(wrapper, compound.getCompound("item")).ifPresent(this::setItemStack);
-        this.setOn(compound.getBoolean("on"));
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+        input.read("item", ItemStack.OPTIONAL_CODEC).ifPresent(this::setItemStack);
+        this.setOn(input.getBooleanOr("on", true));
     }
 }

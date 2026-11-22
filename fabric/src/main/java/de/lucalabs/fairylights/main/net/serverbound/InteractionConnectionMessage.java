@@ -7,7 +7,7 @@ import de.lucalabs.fairylights.main.fastener.accessor.FastenerAccessor;
 import de.lucalabs.fairylights.main.feature.FeatureType;
 import de.lucalabs.fairylights.main.net.InteractionConnectionMessagePayload;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
@@ -20,7 +20,7 @@ import java.util.function.Predicate;
 
 public class InteractionConnectionMessage {
 
-    public static final ResourceLocation ID = Common.id("interaction_connection");
+    public static final Identifier ID = Common.id("interaction_connection");
 
     private static final float RANGE = (Connection.MAX_LENGTH + 1) * (Connection.MAX_LENGTH + 1);
     private static final float REACH = 6 * 6;

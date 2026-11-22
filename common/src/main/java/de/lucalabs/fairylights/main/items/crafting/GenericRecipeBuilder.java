@@ -9,9 +9,12 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.block.Block;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -19,7 +22,7 @@ import java.util.function.Supplier;
 public final class GenericRecipeBuilder {
     private static final char EMPTY_SPACE = ' ';
 
-    private ItemStack output;
+    private @Nullable ItemStackTemplate output;
     private char outputChar = 0;
     private char[] shape = new char[0];
     private int width;
@@ -32,21 +35,35 @@ public final class GenericRecipeBuilder {
     private final List<AuxiliaryIngredient<?>> auxiliaryIngredients = new ArrayList<>();
 
     public GenericRecipeBuilder(final Identifier name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer) {
-        this(name, serializer, ItemStack.EMPTY);
+        this(name, serializer, (ItemStackTemplate) null);
     }
 
     public GenericRecipeBuilder(final Identifier name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final Item item) {
-        this(name, serializer, new ItemStack(item));
+        this(name, serializer, toTemplate(item, 1));
     }
 
     public GenericRecipeBuilder(final Identifier name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final Block block) {
-        this(name, serializer, new ItemStack(block));
+        this(name, serializer, toTemplate(Objects.requireNonNull(block, "block").asItem(), 1));
     }
 
     public GenericRecipeBuilder(final Identifier name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final ItemStack output) {
+        this(name, serializer, toTemplate(output));
+    }
+
+    public GenericRecipeBuilder(final Identifier name, final Supplier<? extends RecipeSerializer<GenericRecipe>> serializer, final @Nullable ItemStackTemplate output) {
         this.name = name;
         this.serializer = serializer;
-        this.output = Objects.requireNonNull(output, "output");
+        this.output = output;
+    }
+
+    private static @Nullable ItemStackTemplate toTemplate(final Item item, final int size) {
+        Objects.requireNonNull(item, "item");
+        return size <= 0 || item == Items.AIR ? null : new ItemStackTemplate(item, size);
+    }
+
+    private static @Nullable ItemStackTemplate toTemplate(final ItemStack stack) {
+        Objects.requireNonNull(stack, "output");
+        return stack.isEmpty() ? null : ItemStackTemplate.fromNonEmptyStack(stack);
     }
 
     public GenericRecipeBuilder withShape(final String... shape) {
@@ -76,7 +93,7 @@ public final class GenericRecipeBuilder {
     }
 
     public GenericRecipeBuilder withOutput(final Item item, final int size) {
-        return this.withOutput(new ItemStack(Objects.requireNonNull(item, "item"), size));
+        return this.withOutput(toTemplate(item, size));
     }
 
     public GenericRecipeBuilder withOutput(final Block block) {
@@ -84,11 +101,15 @@ public final class GenericRecipeBuilder {
     }
 
     public GenericRecipeBuilder withOutput(final Block block, final int size) {
-        return this.withOutput(new ItemStack(Objects.requireNonNull(block, "block"), size));
+        return this.withOutput(toTemplate(Objects.requireNonNull(block, "block").asItem(), size));
     }
 
     public GenericRecipeBuilder withOutput(final ItemStack output) {
-        this.output = Objects.requireNonNull(output, "output");
+        return this.withOutput(toTemplate(output));
+    }
+
+    public GenericRecipeBuilder withOutput(final @Nullable ItemStackTemplate output) {
+        this.output = output;
         return this;
     }
 

@@ -14,8 +14,10 @@ import de.lucalabs.fairylights.main.util.ColorUtils;
 import de.lucalabs.fairylights.main.util.MathHelper;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.sprite.SpriteGetter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -25,10 +27,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class LightRenderer {
+    private final SpriteGetter sprites;
     private final LightModelProvider<LightBehavior> defaultLight = LightModelProvider.of(new DefaultModel());
     private final Map<LightVariant<?>, LightModelProvider<?>> lights;
 
-    public LightRenderer(final Function<ModelLayerLocation, ModelPart> baker) {
+    public LightRenderer(final Function<ModelLayerLocation, ModelPart> baker, final SpriteGetter sprites) {
+        this.sprites = sprites;
         lights = new ImmutableMap.Builder<LightVariant<?>, LightModelProvider<?>>()
                 .put(
                         SimpleLightVariant.FAIRY_LIGHT,
@@ -99,11 +103,9 @@ public class LightRenderer {
                 .build();
     }
 
-    public Data start(final MultiBufferSource source) {
-        // TODO check if unsorted translucency is really needed here
-//        final VertexConsumer buf = RenderConstants.TRANSLUCENT_TEXTURE.getVertexConsumer(source, ForgeRenderTypes::getUnsortedTranslucent);
-        final VertexConsumer buf = RenderConstants.TRANSLUCENT_TEXTURE
-                .buffer(source, RenderType::entityTranslucent);
+    public Data start(final VertexConsumer consumer) {
+        final TextureAtlasSprite sprite = this.sprites.get(RenderConstants.TRANSLUCENT_TEXTURE);
+        final VertexConsumer buf = sprite.wrap(consumer);
 
         ForwardingVertexConsumer translucent = new ForwardingVertexConsumer() {
             @Override
@@ -129,13 +131,31 @@ public class LightRenderer {
         return (LightModel<T>) this.lights.getOrDefault(variant, this.defaultLight).get(index);
     }
 
+    public <T extends LightBehavior> void submit(
+            final PoseStack matrix,
+            final SubmitNodeCollector collector,
+            final Light<T> light,
+            final LightModel<T> model,
+            final float delta,
+            final int packedLight,
+            final int packedOverlay) {
+        collector.submitCustomGeometry(
+                matrix,
+                RenderConstants.TRANSLUCENT_TEXTURE.renderType(RenderTypes::entityTranslucent),
+                (pose, consumer) -> {
+                    final PoseStack local = new PoseStack();
+                    local.last().set(pose);
+                    this.render(local, this.start(consumer), light, model, delta, packedLight, packedOverlay);
+                });
+    }
+
     public void render(final PoseStack matrix, final Data data, final Light<?> light, final int index, final float delta, final int packedLight, final int packedOverlay) {
         this.render(matrix, data, light, this.getModel(light, index), delta, packedLight, packedOverlay);
     }
 
     public <T extends LightBehavior> void render(final PoseStack matrix, final Data data, final Light<T> light, final LightModel<T> model, final float delta, final int packedLight, final int packedOverlay) {
         model.animate(light, light.getBehavior(), delta);
-        model.renderToBuffer(matrix, data.solid, packedLight, packedOverlay, ColorUtils.WHITE);
+        model.render(matrix, data.solid, packedLight, packedOverlay, ColorUtils.WHITE);
         model.renderTranslucent(matrix, data.translucent, packedLight, packedOverlay, ColorUtils.WHITE);
     }
 
@@ -168,7 +188,7 @@ public class LightRenderer {
         }
 
         @Override
-        public void renderToBuffer(
+        public void render(
                 final PoseStack matrix,
                 final VertexConsumer builder,
                 final int light,

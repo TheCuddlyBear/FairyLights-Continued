@@ -10,9 +10,10 @@ import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.util.FastColor;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
+import net.minecraft.util.Unit;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,7 +22,7 @@ import org.joml.Quaternionf;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class LightModel<T extends LightBehavior> extends Model {
+public abstract class LightModel<T extends LightBehavior> extends Model<Unit> {
     protected final ModelPart lit;
     protected final ModelPart litTint;
     protected final ModelPart litTintGlow;
@@ -40,7 +41,7 @@ public abstract class LightModel<T extends LightBehavior> extends Model {
     private boolean powered;
 
     public LightModel(ModelPart root) {
-        super(RenderType::entityTranslucent);
+        super(root, RenderTypes::entityTranslucent);
         this.lit = root.getChild("lit");
         this.litTint = root.getChild("lit_tint");
         this.litTintGlow = root.getChild("lit_tint_glow");
@@ -65,7 +66,7 @@ public abstract class LightModel<T extends LightBehavior> extends Model {
         if (this.bounds == null) {
             final PoseStack matrix = new PoseStack();
             final BoxVertexBuilder builder = new BoxVertexBuilder();
-            this.renderToBuffer(matrix, builder, 0, 0, ColorUtils.WHITE);
+            this.render(matrix, builder, 0, 0, ColorUtils.WHITE);
             this.renderTranslucent(matrix, builder, 0, 0, ColorUtils.WHITE);
             this.bounds = builder.build();
         }
@@ -75,7 +76,7 @@ public abstract class LightModel<T extends LightBehavior> extends Model {
     public double getFloorOffset() {
         if (Double.isNaN(this.floorOffset)) {
             final BoxVertexBuilder builder = new BoxVertexBuilder();
-            this.renderToBuffer(new PoseStack(), builder, 0, 0, FastColor.ARGB32.colorFromFloat(1, 1, 1, 1));
+            this.render(new PoseStack(), builder, 0, 0, ARGB.colorFromFloat(1.0F, 1.0F, 1.0F, 1.0F));
             this.floorOffset = builder.build().minY - this.getBounds().minY;
         }
         return this.floorOffset;
@@ -85,8 +86,7 @@ public abstract class LightModel<T extends LightBehavior> extends Model {
         this.powered = light.isPowered();
     }
 
-    @Override
-    public void renderToBuffer(
+    public void render(
             final PoseStack matrix,
             final VertexConsumer builder,
             final int light,
@@ -184,6 +184,11 @@ public abstract class LightModel<T extends LightBehavior> extends Model {
         }
 
         @Override
+        public @NotNull VertexConsumer setColor(int color) {
+            return this;
+        }
+
+        @Override
         public @NotNull VertexConsumer setUv(float u, float v) {
             return this;
         }
@@ -200,6 +205,11 @@ public abstract class LightModel<T extends LightBehavior> extends Model {
 
         @Override
         public @NotNull VertexConsumer setNormal(float x, float y, float z) {
+            return this;
+        }
+
+        @Override
+        public @NotNull VertexConsumer setLineWidth(float width) {
             return this;
         }
 

@@ -53,7 +53,7 @@ public class MeteorLightModel extends LightModel<MeteorLightBehavior> {
     }
 
     @Override
-    public void renderToBuffer(final PoseStack matrix, final VertexConsumer builder, final int light, final int overlay, final int color) {
+    public void render(final PoseStack matrix, final VertexConsumer builder, final int light, final int overlay, final int color) {
         for (int i = 0; i < this.lights.length; i++) {
             this.brightness = this.computeBrightness((float) i / this.lights.length);
             for (int n = 0; n < this.lights.length; n++) {
@@ -61,7 +61,7 @@ public class MeteorLightModel extends LightModel<MeteorLightBehavior> {
             }
             this.connector.visible = i == 0;
             this.cap.visible = i == this.lights.length - 1;
-            super.renderToBuffer(matrix, builder, light, overlay, color);
+            super.render(matrix, builder, light, overlay, color);
         }
     }
 

@@ -3,7 +3,6 @@ package de.lucalabs.fairylights.client.events;
 import com.google.common.collect.Sets;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import de.lucalabs.fairylights.client.net.ClientNetworking;
 import de.lucalabs.fairylights.main.collision.Collidable;
 import de.lucalabs.fairylights.main.collision.Intersection;
 import de.lucalabs.fairylights.main.connection.Connection;
@@ -15,10 +14,9 @@ import de.lucalabs.fairylights.client.renderer.RenderConstants;
 import de.lucalabs.fairylights.main.net.InteractionConnectionMessagePayload;
 import de.lucalabs.fairylights.main.util.Curve;
 import de.lucalabs.fairylights.platform.Services;
-import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.ShapeRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
@@ -28,7 +26,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -56,20 +54,22 @@ public final class ClientEventHandler {
 
     public static void onDrawEntityHighlight(
             final Entity entity,
-            final Camera camera,
-            final float tickDelta,
+            final Vec3 pos,
             final PoseStack matrix,
-            final MultiBufferSource buf) {
+            final SubmitNodeCollector submitNodeCollector) {
 
-        Vec3 pos = camera.position();
-        float lineWidth = Minecraft.getInstance().getWindow().getAppropriateLineWidth();
+        final Minecraft mc = Minecraft.getInstance();
+        final float lineWidth = mc.getWindow().getAppropriateLineWidth();
+        final RenderType lineRenderType = mc.gameRenderer.useImprovedTransparency()
+                ? RenderTypes.linesTranslucentNoDepthWrite()
+                : RenderTypes.linesTranslucent();
 
-        if (entity instanceof FenceFastenerEntity) {
+        if (entity instanceof FenceFastenerEntity fence) {
             drawFenceFastenerHighlight(
-                    (FenceFastenerEntity) entity,
+                    fence,
                     matrix,
-                    buf.getBuffer(RenderTypes.lines()),
-                    tickDelta,
+                    submitNodeCollector,
+                    lineRenderType,
                     pos.x,
                     pos.y,
                     pos.z,
@@ -79,19 +79,21 @@ public final class ClientEventHandler {
                 matrix.pushPose();
                 final Vec3 p = hit.result.connection.getFastener().getConnectionPoint();
                 matrix.translate(p.x - pos.x, p.y - pos.y, p.z - pos.z);
-                renderHighlight(hit.result.connection, matrix, buf.getBuffer(RenderTypes.lines()), lineWidth);
+                final Connection connection = hit.result.connection;
+                submitNodeCollector.submitCustomGeometry(
+                        matrix,
+                        lineRenderType,
+                        (pose, buf) -> renderHighlight(connection, pose, buf, lineWidth));
                 matrix.popPose();
             } else {
                 final AABB bb = hit.result.intersection.hitBox().move(-pos.x, -pos.y, -pos.z).inflate(0.002D);
-                ShapeRenderer.renderShape(
+                submitNodeCollector.submitShapeOutline(
                         matrix,
-                        buf.getBuffer(RenderTypes.lines()),
                         Shapes.create(bb),
-                        0.0D,
-                        0.0D,
-                        0.0D,
+                        lineRenderType,
                         HIGHLIGHT_COLOR,
-                        lineWidth);
+                        lineWidth,
+                        false);
             }
         }
     }
@@ -99,23 +101,28 @@ public final class ClientEventHandler {
     private static void drawFenceFastenerHighlight(
             final FenceFastenerEntity fence,
             final PoseStack matrix,
-            final VertexConsumer buf,
-            final float delta,
+            final SubmitNodeCollector submitNodeCollector,
+            final RenderType lineRenderType,
             final double dx,
             final double dy,
             final double dz,
             final float lineWidth) {
 
-
         final Player player = Minecraft.getInstance().player;
         // Check if the server will allow interaction
         if (player != null && (player.hasLineOfSight(fence) || player.distanceToSqr(fence) <= 9.0D)) {
             final AABB selection = fence.getBoundingBox().move(-dx, -dy, -dz).inflate(0.002D);
-            ShapeRenderer.renderShape(matrix, buf, Shapes.create(selection), 0.0D, 0.0D, 0.0D, HIGHLIGHT_COLOR, lineWidth);
+            submitNodeCollector.submitShapeOutline(
+                    matrix,
+                    Shapes.create(selection),
+                    lineRenderType,
+                    HIGHLIGHT_COLOR,
+                    lineWidth,
+                    false);
         }
     }
 
-    private static void renderHighlight(final Connection connection, final PoseStack matrix, final VertexConsumer buf, final float lineWidth) {
+    private static void renderHighlight(final Connection connection, final PoseStack.Pose pose, final VertexConsumer buf, final float lineWidth) {
         final Curve cat = connection.getCatenary();
         if (cat == null) {
             return;
@@ -123,7 +130,7 @@ public final class ClientEventHandler {
         final Vector3f p = new Vector3f();
         final Vector3f v1 = new Vector3f();
         final Vector3f v2 = new Vector3f();
-        final LineBuilder builder = new LineBuilder(matrix, buf, lineWidth);
+        final LineBuilder builder = new LineBuilder(pose, buf, lineWidth);
         final float r = connection.getRadius() + 0.01F;
         for (int edge = 0; edge < 4; edge++) {
             p.set(cat.getX(0), cat.getY(0), cat.getZ(0));
@@ -286,13 +293,13 @@ public final class ClientEventHandler {
     }
 
     static class LineBuilder {
-        final PoseStack matrix;
+        final PoseStack.Pose pose;
         final VertexConsumer buf;
         final float lineWidth;
         Vector3f last;
 
-        LineBuilder(PoseStack matrix, VertexConsumer buf, float lineWidth) {
-            this.matrix = matrix;
+        LineBuilder(PoseStack.Pose pose, VertexConsumer buf, float lineWidth) {
+            this.pose = pose;
             this.buf = buf;
             this.lineWidth = lineWidth;
         }
@@ -301,17 +308,14 @@ public final class ClientEventHandler {
             if (this.last == null) {
                 this.last = pos;
             } else {
-                Vector3f n = new Vector3f(pos);
-                n.sub(this.last);
-                n.normalize();
-                n = this.matrix.last().normal().transform(n);
-                this.buf.addVertex(this.matrix.last().pose(), this.last.x(), this.last.y(), this.last.z())
-                        .setColor(0.0F, 0.0F, 0.0F, RenderConstants.HIGHLIGHT_ALPHA)
-                        .setNormal(n.x(), n.y(), n.z())
+                Vector3f n = new Vector3f(pos).sub(this.last).normalize();
+                this.buf.addVertex(this.pose, this.last)
+                        .setColor(HIGHLIGHT_COLOR)
+                        .setNormal(this.pose, n)
                         .setLineWidth(this.lineWidth);
-                this.buf.addVertex(this.matrix.last().pose(), pos.x(), pos.y(), pos.z())
-                        .setColor(0.0F, 0.0F, 0.0F, RenderConstants.HIGHLIGHT_ALPHA)
-                        .setNormal(n.x(), n.y(), n.z())
+                this.buf.addVertex(this.pose, pos)
+                        .setColor(HIGHLIGHT_COLOR)
+                        .setNormal(this.pose, n)
                         .setLineWidth(this.lineWidth);
                 this.last = null;
             }
@@ -322,7 +326,7 @@ public final class ClientEventHandler {
         final ClientEventHandler.HitResult result;
 
         HitConnection(final Level world, final ClientEventHandler.HitResult result) {
-            super(EntityType.ITEM, world);
+            super(EntityTypes.ITEM, world);
             this.setId(-1);
             this.result = result;
             this.setPos(result.intersection.result());
